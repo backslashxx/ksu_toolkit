@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 	if (!argv[1])
 		goto bail_out;
 
-	if (!strnmatch(argv[1], "--setuid", strlen("--setuid") + 1)) {
+	if (!!argv[2] && !strnmatch(argv[1], "--setuid", strlen("--setuid") + 1)) {
 		int magic1 = 0xDEADBEEF;
 		int magic2 = 10006;
 		uintptr_t arg;
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 		return fail();
 	}
 
-	if (!strnmatch(argv[1], "--getuid", strlen("--getuid") + 1)) {
+	if (!argv[2] && !strnmatch(argv[1], "--getuid", strlen("--getuid") + 1)) {
 		unsigned int fd = 0;
 		syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (void *)&fd);
 		if (!fd)
