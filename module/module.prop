@@ -1,0 +1,6 @@
+id=ksu_switch_manager
+name=Switch KSU Manager
+version=v0.0.1
+versionCode=1
+author=xx
+description=Switch KSU Manager by uid. For debugging purposes.
