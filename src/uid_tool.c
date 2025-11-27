@@ -71,6 +71,31 @@ static int fail(void)
 	return 1;
 }
 
+// https://github.com/backslashxx/various_stuff/blob/master/ksu_prctl_test/ksu_prctl_02_only.c
+static int dumb_print_appuid(int uid)
+{
+	if (!(uid > 10000 && uid < 20000))
+		return fail();
+
+	char digits[6];
+
+	if (uid > 10000) {
+		int i = 4;
+		uid = uid % 100000; // oob filter
+		do {
+			digits[i] = 48 + (uid % 10);
+			uid = uid / 10;
+			i--;			
+		} while (i >= 0);
+
+		digits[5] = '\n';
+	} else
+		return fail();
+
+	syscall(SYS_write, 1, digits, 6);
+	return 0;
+}
+
 static int show_usage(void)
 {
 	const char *usage = "Usage:\n./uidtool --setuid <uid>\n./uidtool --getuid\n";
@@ -113,7 +138,7 @@ int main(int argc, char *argv[])
 		if (ret)
 			return fail();
 
-		return cmd.uid;
+		return dumb_print_appuid(cmd.uid);
 	}
 
 bail_out:
