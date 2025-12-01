@@ -1,11 +1,14 @@
-#include <string.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
-#include <fcntl.h>
 
-// NOTE: compile at -Os / -Oz / -O2 or better so strlen gets removed
+// zig cc -target aarch64-linux uid_tool.c -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -flto -o uid_tool
+
+// https://gcc.gnu.org/onlinedocs/gcc/Library-Builtins.html
+// https://clang.llvm.org/docs/LanguageExtensions.html#builtin-functions
+#define strlen __builtin_strlen
+#define memcmp __builtin_memcmp
 
 // get uid from kernelsu
 struct ksu_get_manager_uid_cmd {
@@ -15,28 +18,25 @@ struct ksu_get_manager_uid_cmd {
 #define KSU_INSTALL_MAGIC1 0xDEADBEEF
 #define KSU_INSTALL_MAGIC2 0xCAFEBABE
 
-// for cmd, we can do a manual string to int
-// then check if its between 10000 ~ 20000
-// this way we can remove strtoul / strtol
-// after all, int to char is just shit + 48
+__attribute__((always_inline))
 static int dumb_str_to_appuid(const char *str)
 {
 	int uid = 0;
 
 	// dereference to see if user supplied 5 digits
 	if ( !*(str + 4) )
-		return uid;
+		return 0;
 	
 	// dereference to see if its a null terminator
 	if ( *(str + 5) )
-		return uid;
+		return 0;
 
 	int i = 4;
 	int m = 1;
 
 	do {
 		// like what? you'll put a letter? a symbol?
-		if ( (int)*(str + i ) > 57 || (int)*(str + i ) < 48 )
+		if ( *(str + i ) > '9' || *(str + i ) < '0' )
 			return 0;
 
 		uid = uid + ( *(str + i) - 48 ) * m;
@@ -50,33 +50,7 @@ static int dumb_str_to_appuid(const char *str)
 	return uid;
 }
 
-/*
- * strnmatch, test two strings if they match up to n len
- *
- * caller is reposnible for sanity! no \0 check!
- * returns: 0 = match, 1 = not match
- *
- * Usage examples:
- * for strcmp like behavior, strnmatch(x, y, strlen(y) + 1) (+1 for \0)
- * for strstarts like behavior strnmatch(x, y, strlen(y))
- *  
- */
-static int strnmatch(const char *a, const char *b, unsigned int count)
-{
-	// og condition was like *a && (*a == *b) && count > 0
-	do {
-		// if they arent equal
-		if (*a != *b) 
-			return 1;
-		a++;
-		b++;
-		count --;
-	} while (count > 0);
-
-	// we reach here if they match
-	return 0;
-}
-
+__attribute__((always_inline))
 static int fail(void)
 {
 	const char *error = "fail\n";
@@ -85,11 +59,9 @@ static int fail(void)
 }
 
 // https://github.com/backslashxx/various_stuff/blob/master/ksu_prctl_test/ksu_prctl_02_only.c
+__attribute__((always_inline))
 static int dumb_print_appuid(int uid)
 {
-	if (!(uid > 10000 && uid < 20000))
-		return fail();
-
 	char digits[6];
 
 	int i = 4;
@@ -105,6 +77,7 @@ static int dumb_print_appuid(int uid)
 	return 0;
 }
 
+__attribute__((always_inline))
 static int show_usage(void)
 {
 	const char *usage = "Usage:\n./uidtool --setuid <uid>\n./uidtool --getuid\n";
@@ -115,16 +88,16 @@ static int show_usage(void)
 int main(int argc, char *argv[])
 {
 	if (!argv[1])
-		goto bail_out;
+		goto show_usage;
 
-	if (!!argv[2] && !argv[3] && !strnmatch(argv[1], "--setuid", strlen("--setuid") + 1)) {
+	if (!!argv[2] && !argv[3] && !memcmp(argv[1], "--setuid", strlen("--setuid") + 1)) {
 		int magic1 = 0xDEADBEEF;
 		int magic2 = 10006;
 		uintptr_t arg = 0;
 		
 		unsigned int cmd = dumb_str_to_appuid(argv[2]);
 		if (!cmd)
-			return fail();
+			goto fail;
 		
 		syscall(SYS_reboot, magic1, magic2, cmd, (void *)&arg);
 
@@ -133,26 +106,31 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 		
-		return fail();
+		goto fail;
 	}
 
-	if (!argv[2] && !strnmatch(argv[1], "--getuid", strlen("--getuid") + 1)) {
+	if (!argv[2] && !memcmp(argv[1], "--getuid", strlen("--getuid") + 1)) {
 		unsigned int fd = 0;
 		
 		// we dont care about closing the fd, it gets released on exit automatically
 		syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (void *)&fd);
 		if (!fd)
-			return fail();
+			goto fail;
 
-		struct ksu_get_manager_uid_cmd cmd = {0};
+		struct ksu_get_manager_uid_cmd cmd;
 		int ret = syscall(SYS_ioctl, fd, KSU_IOCTL_GET_MANAGER_UID, &cmd);
 		if (ret)
-			return fail();
+			goto fail;
+
+		if (!(cmd.uid > 10000 && cmd.uid < 20000))
+			goto fail;
 
 		return dumb_print_appuid(cmd.uid);
 	}
 
-bail_out:
+show_usage:
 	return show_usage();
 
+fail:
+	return fail();
 }
