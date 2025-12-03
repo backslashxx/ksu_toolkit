@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
+#include <ctype.h>
 
 // zig cc -target aarch64-linux uid_tool.c -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -flto -o uid_tool
 
@@ -26,8 +27,10 @@ static int dumb_str_to_appuid(const char *str)
 	int m = 1;
 
 	do {
-		// like what? you'll put a letter? a symbol?
-		if ( *(str + i ) > '9' || *(str + i ) < '0' )
+		// llvm actually has an optimized isdigit
+		// just not prefixed with __builtin
+		// code generated is the same size, so better use it
+		if (!isdigit(str[i]))
 			return 0;
 
 		uid = uid + ( *(str + i) - 48 ) * m;
