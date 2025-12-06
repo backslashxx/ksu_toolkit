@@ -8,14 +8,26 @@
 
 // https://gcc.gnu.org/onlinedocs/gcc/Library-Builtins.html
 // https://clang.llvm.org/docs/LanguageExtensions.html#builtin-functions
-#define strlen __builtin_strlen
+#define alloca __builtin_alloca
 #define memcmp __builtin_memcmp
+#define strlen __builtin_strlen
 
 // get uid from kernelsu
 struct ksu_get_manager_uid_cmd {
 	uint32_t uid;
 };
 #define KSU_IOCTL_GET_MANAGER_UID _IOC(_IOC_READ, 'K', 10, 0)
+
+struct ksu_add_try_umount_cmd {
+	uint64_t arg; // char ptr, this is the mountpoint
+	uint32_t flags; // this is the flag we use for it
+	uint8_t mode; // denotes what to do with it 0:wipe_list 1:add_to_list 2:delete_entry
+};
+#define KSU_UMOUNT_GETSIZE 107   // get list size
+#define KSU_UMOUNT_GETLIST 108   // get list
+
+#define KSU_IOCTL_ADD_TRY_UMOUNT _IOC(_IOC_WRITE, 'K', 18, 0)
+
 #define KSU_INSTALL_MAGIC1 0xDEADBEEF
 #define KSU_INSTALL_MAGIC2 0xCAFEBABE
 
@@ -46,10 +58,9 @@ static int dumb_str_to_appuid(const char *str)
 	return uid;
 }
 
-__attribute__((always_inline))
-static int fail(void)
+__attribute__((noinline))
+static int fail(const char *error)
 {
-	const char *error = "fail\n";
 	__syscall(SYS_write, 2, (long)error, strlen(error), NONE, NONE, NONE);
 	return 1;
 }
@@ -73,17 +84,17 @@ static int dumb_print_appuid(int uid)
 	return 0;
 }
 
-__attribute__((always_inline))
-static int show_usage(void)
-{
-	const char *usage = "Usage:\n./uidtool --setuid <uid>\n./uidtool --getuid\n";
-	__syscall(SYS_write, 2, (long)usage, strlen(usage), NONE, NONE, NONE);
-	return 1;
-}
-
 static int c_main(int argc, char **argv, char **envp)
 {
 	const char *ok = "ok\n";
+	const char *newline = "\n";
+	const char usage[] =
+	"Usage:\n"
+	"./toolkit --setuid <uid>\n"
+	"./toolkit --getuid\n"
+	"./toolkit --getlist\n";
+
+	unsigned int fd = 0;
 
 	if (!argv[1])
 		goto show_usage;
@@ -109,7 +120,6 @@ static int c_main(int argc, char **argv, char **envp)
 	}
 
 	if (!memcmp(argv[1], "--getuid", strlen("--getuid") + 1) && !argv[2]) {
-		unsigned int fd = 0;
 		
 		// we dont care about closing the fd, it gets released on exit automatically
 		__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (long)&fd, NONE, NONE);
@@ -127,11 +137,59 @@ static int c_main(int argc, char **argv, char **envp)
 		return dumb_print_appuid(cmd.uid);
 	}
 
+	if (!memcmp(argv[1], "--getlist", strlen("--getlist") + 1) && !argv[2]) {
+		unsigned long total_size = 0;
+
+		__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (long)&fd, NONE, NONE);
+		if (!fd)
+			return 1;
+
+		struct ksu_add_try_umount_cmd cmd = {0};
+		cmd.arg = (uint64_t)&total_size;
+		cmd.flags = 0;
+		cmd.mode = KSU_UMOUNT_GETSIZE;
+
+
+		int ret = __syscall(SYS_ioctl, fd, KSU_IOCTL_ADD_TRY_UMOUNT, (long)&cmd, NONE, NONE, NONE);
+		if (ret < 0)
+			goto fail;
+
+		if (!total_size)
+			goto list_empty;
+
+		// now we can prepare the same size of memory		
+		void *buffer = alloca(total_size);
+		if (!buffer)
+			goto fail;
+
+		cmd.arg = (uint64_t)buffer;
+		cmd.flags = 0;
+		cmd.mode = KSU_UMOUNT_GETLIST;
+
+		ret = __syscall(SYS_ioctl, fd, KSU_IOCTL_ADD_TRY_UMOUNT, (long)&cmd, NONE, NONE, NONE);
+		if (ret < 0)
+			goto fail;
+
+		// now we pointerwalk
+		const char *char_buf = (const char *)buffer;
+		do {
+			__syscall(SYS_write, 1, (long)char_buf, strlen(char_buf), NONE, NONE, NONE);
+			__syscall(SYS_write, 1, (long)newline, 1, NONE, NONE, NONE);
+			
+			char_buf = char_buf + strlen(char_buf) + 1;
+		} while (*char_buf);
+
+		return 0;
+	}
+
 show_usage:
-	return show_usage();
+	return fail(usage);
+
+list_empty:
+	return fail("list empty\n");
 
 fail:
-	return fail();
+	return fail("fail\n");
 }
 
 void prep_main(long *sp)
