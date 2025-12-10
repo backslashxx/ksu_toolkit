@@ -65,6 +65,7 @@ static long __syscall(long n, long a, long b, long c, long d, long e, long f) {
 #endif
 
 #if 0 // this is here so YOU can copy-paste below C entry
+__attribute__((used))
 void prep_main(long *sp)
 {
 	long argc = *sp;

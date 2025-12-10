@@ -91,6 +91,7 @@ static int dumb_print_appuid(int uid)
 	return 0;
 }
 
+__attribute__((always_inline))
 static int c_main(int argc, char **argv, char **envp)
 {
 	const char *ok = "ok\n";
@@ -201,6 +202,7 @@ fail:
 	return fail("fail\n");
 }
 
+__attribute__((used))
 void prep_main(long *sp)
 {
 	long argc = *sp;
