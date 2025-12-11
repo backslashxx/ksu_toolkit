@@ -222,7 +222,7 @@ function setupUmountPageListener() {
 
     kernelUmountSwitch.addEventListener('change', () => {
         const state = kernelUmountSwitch.selected ? '1' : '0';
-        exec(`${ksud} feature set kernel_umount ${state}`).catch(() => { });
+        exec(`${ksud} feature set kernel_umount ${state} && ${ksud} feature save`).catch(() => { });
     });
 }
 
