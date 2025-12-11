@@ -7,12 +7,15 @@ on:
       - '**.md'
   workflow_dispatch:
 
+env:
+  MODULE_NAME: 'ksu_toolkit'
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Setup zig
         uses: mlugg/setup-zig@v2
@@ -57,9 +60,7 @@ jobs:
           npm run build
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
-          name: module
+          name: ${{ env.MODULE_NAME }}-${{ github.run_number }}
           path: module/
-
-
