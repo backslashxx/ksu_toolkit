@@ -6,6 +6,9 @@
 
 // zig cc -target aarch64-linux -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start toolkit.c -o toolkit 
 
+#include <setjmp.h>
+jmp_buf generic_fail;
+
 #define alloca __builtin_alloca
 #define memcmp __builtin_memcmp
 
@@ -52,7 +55,7 @@ static int dumb_str_to_appuid(const char *str)
 		// just not prefixed with __builtin
 		// code generated is the same size, so better use it
 		if (!isdigit(str[i]))
-			return 0;
+			longjmp(generic_fail, 1);
 
 		uid = uid + ( *(str + i) - 48 ) * m;
 		m = m * 10;
@@ -60,7 +63,7 @@ static int dumb_str_to_appuid(const char *str)
 	} while (!(i < 0));
 
 	if (!(uid > 10000 && uid < 20000))
-		return 0;
+		longjmp(generic_fail, 1);
 
 	return uid;
 }
@@ -104,8 +107,14 @@ static int c_main(int argc, char **argv, char **envp)
 
 	unsigned int fd = 0;
 
+	int u = 0;
+	u = setjmp(generic_fail);
+
 	if (!argv[1])
 		goto show_usage;
+	
+	if (u == 1)
+		goto fail;
 
 	if (!memcmp(argv[1], "--setuid", strlen("--setuid") + 1) && 
 		!!argv[2] && !!argv[2][4] && !argv[2][5] && !argv[3]) {
@@ -115,7 +124,7 @@ static int c_main(int argc, char **argv, char **envp)
 		
 		unsigned int cmd = dumb_str_to_appuid(argv[2]);
 		if (!cmd)
-			goto fail;
+			longjmp(generic_fail, 1);
 		
 		__syscall(SYS_reboot, magic1, magic2, cmd, (long)&arg, NONE, NONE);
 
@@ -124,7 +133,7 @@ static int c_main(int argc, char **argv, char **envp)
 			return 0;
 		}
 		
-		goto fail;
+		longjmp(generic_fail, 1);
 	}
 
 	if (!memcmp(argv[1], "--getuid", strlen("--getuid") + 1) && !argv[2]) {
@@ -132,15 +141,15 @@ static int c_main(int argc, char **argv, char **envp)
 		// we dont care about closing the fd, it gets released on exit automatically
 		__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (long)&fd, NONE, NONE);
 		if (!fd)
-			goto fail;
+			longjmp(generic_fail, 1);
 
 		struct ksu_get_manager_uid_cmd cmd;
 		int ret = __syscall(SYS_ioctl, fd, KSU_IOCTL_GET_MANAGER_UID, (long)&cmd, NONE, NONE, NONE);
 		if (ret)
-			goto fail;
+			longjmp(generic_fail, 1);
 
 		if (!(cmd.uid > 10000 && cmd.uid < 20000))
-			goto fail;
+			longjmp(generic_fail, 1);
 
 		return dumb_print_appuid(cmd.uid);
 	}
@@ -150,7 +159,7 @@ static int c_main(int argc, char **argv, char **envp)
 
 		__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (long)&fd, NONE, NONE);
 		if (!fd)
-			goto fail;
+			longjmp(generic_fail, 1);
 
 		struct ksu_add_try_umount_cmd cmd = {0};
 		cmd.arg = (uint64_t)&total_size;
@@ -159,7 +168,7 @@ static int c_main(int argc, char **argv, char **envp)
 
 		int ret = __syscall(SYS_ioctl, fd, KSU_IOCTL_ADD_TRY_UMOUNT, (long)&cmd, NONE, NONE, NONE);
 		if (ret < 0)
-			goto fail;
+			longjmp(generic_fail, 1);
 
 		if (!total_size)
 			goto list_empty;
@@ -178,7 +187,7 @@ static int c_main(int argc, char **argv, char **envp)
 
 		ret = __syscall(SYS_ioctl, fd, KSU_IOCTL_ADD_TRY_UMOUNT, (long)&cmd, NONE, NONE, NONE);
 		if (ret < 0)
-			goto fail;
+			longjmp(generic_fail, 1);
 
 		// now we pointerwalk
 		const char *char_buf = (const char *)buffer;
