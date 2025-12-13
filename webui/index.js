@@ -95,11 +95,11 @@ function checkUidFeature() {
         `${bin} --setuid $(${bin} --getuid) || exit 1`,
         { env: { PATH: `$PATH:${modDir}` }}
     ).then((result) => {
+        document.getElementById('manager-loading').classList.remove('active');
         if (result.errno !== 0 && !import.meta.env.DEV) {
             document.getElementById('crown-unsupported').classList.add('active');
             return;
         }
-        document.getElementById('manager-loading').classList.remove('active');
         appendManagerList();
         setupUidPageListener();
     }).catch(() => { });
