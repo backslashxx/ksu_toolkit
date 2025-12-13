@@ -88,7 +88,7 @@ static int fail(const char *error)
 }
 
 __attribute__((noinline))
-static int dumb_print_appuid(int uid, long len)
+static int dumb_print_appuid(int uid, unsigned long len)
 {
 	// +1 for \n
 	char digits[len + 1];
@@ -210,25 +210,26 @@ static int c_main(int argc, char **argv, char **envp)
 	}
 
 	if (!memcmp(argv[1], "--sulog", strlen("--sulog") + 1) && !argv[2]) {	
-		uint64_t latest_index = 0;
+		unsigned long sulog_index_next = 0;
 		char sulog_buf[SULOG_BUFSIZ] = {0};
 		char t[] = "sym: ? uid: ";
 
 		struct sulog_entry_rcv_ptr sbuf = {0};
 		
-		sbuf.int_ptr = (uint64_t)&latest_index;
+		sbuf.int_ptr = (uint64_t)&sulog_index_next;
 		sbuf.buf_ptr = (uint64_t)sulog_buf;
 
 		__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, GET_SULOG_DUMP, 0, (long)&sbuf, NONE, NONE);
 		
-		int start = latest_index;
+		// sulog_index_next is the oldest entry!
+		// and sulog_index_next -1 is the newest entry
+		// we start listing from the oldest entry
+		int start = sulog_index_next;
 
 		int i = 0;
 
-sulog_loop_start:			
-		// this way we make it so that latest index is highest index
-		// modulus due to this overflowinbf entry_max
-		int idx = (start + i) % SULOG_ENTRY_MAX;
+	sulog_loop_start:			
+		int idx = (start + i) % SULOG_ENTRY_MAX; // modulus due to this overflowing entry_max
 		struct sulog_entry *entry_ptr = (struct sulog_entry *)(sulog_buf + idx * sizeof(struct sulog_entry) );
 			
 		if (entry_ptr->symbol) {
