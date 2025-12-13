@@ -30,6 +30,21 @@ struct ksu_add_try_umount_cmd {
 
 #define NONE 0
 
+// sulog
+struct sulog_entry {
+	uint8_t symbol;
+	uint32_t uid; // mebbe u16?
+} __attribute__((packed));
+
+struct sulog_entry_rcv_ptr {
+	uint64_t int_ptr; // send index here
+	uint64_t buf_ptr; // send buf here
+};
+
+#define SULOG_ENTRY_MAX 100
+#define SULOG_BUFSIZ SULOG_ENTRY_MAX * (sizeof (struct sulog_entry))
+#define GET_SULOG_DUMP 10009     // get sulog dump, max, last 100 escalations
+
 __attribute__((noinline))
 static unsigned long strlen(const char *str)
 {
@@ -72,22 +87,23 @@ static int fail(const char *error)
 	return 1;
 }
 
-// https://github.com/backslashxx/various_stuff/blob/master/ksu_prctl_test/ksu_prctl_02_only.c
-__attribute__((always_inline))
-static int dumb_print_appuid(int uid)
+__attribute__((noinline))
+static int dumb_print_appuid(int uid, long len)
 {
-	char digits[6];
+	// +1 for \n
+	char digits[len + 1];
 
-	int i = 4;
+	int i = len - 1;
 	do {
 		digits[i] = 48 + (uid % 10);
 		uid = uid / 10;
 		i--;			
 	} while (!(i < 0));
 
-	digits[5] = '\n';
+	// char index starts at 0
+	digits[len] = '\n';
 
-	__syscall(SYS_write, 1, (long)digits, 6, NONE, NONE, NONE);
+	__syscall(SYS_write, 1, (long)digits, len +1, NONE, NONE, NONE);
 	return 0;
 }
 
@@ -100,7 +116,8 @@ static int c_main(int argc, char **argv, char **envp)
 	"Usage:\n"
 	"./toolkit --setuid <uid>\n"
 	"./toolkit --getuid\n"
-	"./toolkit --getlist\n";
+	"./toolkit --getlist\n"
+	"./toolkit --sulog\n";
 
 	unsigned int fd = 0;
 
@@ -142,7 +159,7 @@ static int c_main(int argc, char **argv, char **envp)
 		if (!(cmd.uid > 10000 && cmd.uid < 20000))
 			goto fail;
 
-		return dumb_print_appuid(cmd.uid);
+		return dumb_print_appuid(cmd.uid, 5);
 	}
 
 	if (!memcmp(argv[1], "--getlist", strlen("--getlist") + 1) && !argv[2]) {
@@ -188,6 +205,42 @@ static int c_main(int argc, char **argv, char **envp)
 			
 			char_buf = char_buf + strlen(char_buf) + 1;
 		}
+
+		return 0;
+	}
+
+	if (!memcmp(argv[1], "--sulog", strlen("--sulog") + 1) && !argv[2]) {	
+		uint64_t latest_index = 0;
+		char sulog_buf[SULOG_BUFSIZ] = {0};
+		char t[] = "sym: x uid: ";
+
+		struct sulog_entry_rcv_ptr sbuf = {0};
+		
+		sbuf.int_ptr = (uint64_t)&latest_index;
+		sbuf.buf_ptr = (uint64_t)sulog_buf;
+
+		__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, GET_SULOG_DUMP, 0, (long)&sbuf, NONE, NONE);
+		
+		int start = latest_index;
+
+		int i = 0;
+
+sulog_loop_start:			
+		// this way we make it so that latest index is highest index
+		// modulus due to this overflowinbf entry_max
+		int idx = (start + i) % SULOG_ENTRY_MAX;
+		struct sulog_entry *entry_ptr = (struct sulog_entry *)(sulog_buf + idx * sizeof(struct sulog_entry) );
+			
+		if (entry_ptr->symbol) {
+			t[5] = entry_ptr->symbol;
+			__syscall(SYS_write, 1, (long)t, strlen(t), NONE, NONE, NONE);
+			dumb_print_appuid(entry_ptr->uid, 6); // android appuid to 6 digits
+		}
+
+		i++;
+
+		if (i < SULOG_ENTRY_MAX)
+			goto sulog_loop_start;
 
 		return 0;
 	}
