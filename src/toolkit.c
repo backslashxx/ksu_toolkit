@@ -81,9 +81,9 @@ static int dumb_str_to_appuid(const char *str)
 }
 
 __attribute__((noinline))
-static int fail(const char *error)
+static int fail(const char *error, unsigned long len)
 {
-	__syscall(SYS_write, 2, (long)error, strlen(error), NONE, NONE, NONE);
+	__syscall(SYS_write, 2, (long)error, len, NONE, NONE, NONE);
 	return 1;
 }
 
@@ -107,18 +107,19 @@ static int dumb_print_appuid(int uid, unsigned long len)
 	return 0;
 }
 
-__attribute__((always_inline))
-static int c_main(int argc, char **argv, char **envp)
-{
-	const char *ok = "ok\n";
-	const char *newline = "\n";
-	const char *usage =
+const char *text_blob =
+	"ok\n"
+	"fail\n"
+	"list empty\n"
 	"Usage:\n"
 	"./toolkit --setuid <uid>\n"
 	"./toolkit --getuid\n"
 	"./toolkit --getlist\n"
 	"./toolkit --sulog\n";
 
+__attribute__((always_inline))
+static int c_main(int argc, char **argv, char **envp)
+{
 	unsigned int fd = 0;
 
 	if (!argv[1])
@@ -137,7 +138,7 @@ static int c_main(int argc, char **argv, char **envp)
 		__syscall(SYS_reboot, magic1, magic2, cmd, (long)&arg, NONE, NONE);
 
 		if (arg && *(uintptr_t *)arg == arg ) {
-			__syscall(SYS_write, 2, (long)ok, strlen(ok), NONE, NONE, NONE);
+			__syscall(SYS_write, 2, (long)text_blob, 3, NONE, NONE, NONE);
 			return 0;
 		}
 		
@@ -201,7 +202,7 @@ static int c_main(int argc, char **argv, char **envp)
 		const char *char_buf = (const char *)buffer;
 		while (*char_buf) {
 			__syscall(SYS_write, 1, (long)char_buf, strlen(char_buf), NONE, NONE, NONE);
-			__syscall(SYS_write, 1, (long)newline, 1, NONE, NONE, NONE);
+			__syscall(SYS_write, 1, (long)(text_blob + 2), 1, NONE, NONE, NONE);
 			
 			char_buf = char_buf + strlen(char_buf) + 1;
 		}
@@ -247,13 +248,13 @@ static int c_main(int argc, char **argv, char **envp)
 	}
 
 show_usage:
-	return fail(usage);
+	return fail(text_blob + 19, __builtin_strlen(text_blob + 19) );
 
 list_empty:
-	return fail("list empty\n");
+	return fail(text_blob + 8, __builtin_strlen(text_blob + 8) );
 
 fail:
-	return fail("fail\n");
+	return fail(text_blob + 3, __builtin_strlen(text_blob + 3) );
 }
 
 __attribute__((used))
