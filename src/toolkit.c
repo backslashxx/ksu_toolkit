@@ -55,6 +55,24 @@ static unsigned long strlen(const char *str)
 	return s - str;
 }
 
+__attribute__((noinline))
+static void __fprintf(long fd, const char *buf, unsigned long len)
+{
+	__syscall(SYS_write, fd, (long)buf, len, NONE, NONE, NONE);
+}
+
+__attribute__((always_inline))
+static void print_out(const char *buf, unsigned long len)
+{
+	__fprintf(1, buf, len);
+}
+
+__attribute__((always_inline))
+static void print_err(const char *buf, unsigned long len)
+{
+	__fprintf(2, buf, len);
+}
+
 __attribute__((always_inline))
 static int dumb_str_to_appuid(const char *str)
 {
@@ -78,13 +96,6 @@ static int dumb_str_to_appuid(const char *str)
 		return 0;
 
 	return uid;
-}
-
-__attribute__((noinline))
-static int fail(const char *error)
-{
-	__syscall(SYS_write, 2, (long)error, strlen(error), NONE, NONE, NONE);
-	return 1;
 }
 
 /*
@@ -142,7 +153,7 @@ static int c_main(int argc, char **argv, char **envp)
 		__syscall(SYS_reboot, magic1, magic2, cmd, (long)&arg, NONE, NONE);
 
 		if (arg && *(uintptr_t *)arg == arg ) {
-			__syscall(SYS_write, 2, (long)ok, sizeof(ok), NONE, NONE, NONE);
+			print_out(ok, sizeof(ok));
 			return 0;
 		}
 		
@@ -168,7 +179,7 @@ static int c_main(int argc, char **argv, char **envp)
 
 		uid_to_str_wn(cmd.uid, sizeof(gbuf) - 1, gbuf);
 
-		__syscall(SYS_write, 1, (long)gbuf, sizeof(gbuf), NONE, NONE, NONE);
+		print_out(gbuf, sizeof(gbuf));
 		
 		return 0;
 		
@@ -220,7 +231,7 @@ static int c_main(int argc, char **argv, char **envp)
 			*(char_buf + len) = '\n';
 
 			// len +1 to account for newline
-			__syscall(SYS_write, 1, (long)char_buf, len + 1, NONE, NONE, NONE);			
+			print_out(char_buf, len + 1);			
 
 			// walk the pointer
 			char_buf = char_buf + len + 1;
@@ -257,7 +268,7 @@ static int c_main(int argc, char **argv, char **envp)
 		if (entry_ptr->symbol) {
 			t[5] = entry_ptr->symbol;
 			uid_to_str_wn(entry_ptr->uid, 6, &t[12]);
-			__syscall(SYS_write, 1, (long)t, sizeof(t), NONE, NONE, NONE);			
+			print_out(t, sizeof(t));			
 		}
 
 		i++;
@@ -269,13 +280,16 @@ static int c_main(int argc, char **argv, char **envp)
 	}
 
 show_usage:
-	return fail(usage);
+	print_err(usage, strlen(usage));
+	return 1;
 
 list_empty:
-	return fail("list empty\n");
+	print_err("list empty\n", strlen("list empty\n"));
+	return 1;
 
 fail:
-	return fail("fail\n");
+	print_err("fail\n", strlen("fail\n"));
+	return 1;
 }
 
 __attribute__((used))
