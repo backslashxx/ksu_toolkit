@@ -153,7 +153,7 @@ static int c_main(int argc, char **argv, char **envp)
 		__syscall(SYS_reboot, magic1, magic2, cmd, (long)&arg, NONE, NONE);
 
 		if (arg && *(uintptr_t *)arg == arg ) {
-			print_out(ok, sizeof(ok));
+			print_out(ok, strlen(ok));
 			return 0;
 		}
 		
