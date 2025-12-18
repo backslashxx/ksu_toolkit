@@ -136,17 +136,19 @@ static int c_main(int argc, char **argv, char **envp)
 	"./toolkit --sulog\n";
 
 	unsigned int fd = 0;
+	char *argv1 = argv[1];
+	char *argv2 = argv[2];
 
-	if (!argv[1])
+	if (!argv1)
 		goto show_usage;
 
-	if (!memcmp(argv[1], "--setuid", sizeof("--setuid")) && 
-		!!argv[2] && !!argv[2][4] && !argv[2][5] && !argv[3]) {
+	if (!memcmp(argv1, "--setuid", sizeof("--setuid")) && 
+		!!argv2 && !!argv2[4] && !argv2[5] && !argv[3]) {
 		int magic1 = KSU_INSTALL_MAGIC1;
 		int magic2 = CHANGE_MANAGER_UID;
 		uintptr_t arg = 0;
 		
-		unsigned int cmd = dumb_str_to_appuid(argv[2]);
+		unsigned int cmd = dumb_str_to_appuid(argv2);
 		if (!cmd)
 			goto fail;
 		
@@ -160,7 +162,7 @@ static int c_main(int argc, char **argv, char **envp)
 		goto fail;
 	}
 
-	if (!memcmp(argv[1], "--getuid", sizeof("--getuid")) && !argv[2]) {
+	if (!memcmp(argv1, "--getuid", sizeof("--getuid")) && !argv2) {
 		
 		// we dont care about closing the fd, it gets released on exit automatically
 		__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (long)&fd, NONE, NONE);
@@ -185,7 +187,7 @@ static int c_main(int argc, char **argv, char **envp)
 		
 	}
 
-	if (!memcmp(argv[1], "--getlist", sizeof("--getlist")) && !argv[2]) {
+	if (!memcmp(argv1, "--getlist", sizeof("--getlist")) && !argv2) {
 		unsigned long total_size;
 
 		__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (long)&fd, NONE, NONE);
@@ -244,7 +246,7 @@ static int c_main(int argc, char **argv, char **envp)
 		return 0;
 	}
 
-	if (!memcmp(argv[1], "--sulog", sizeof("--sulog")) && !argv[2]) {	
+	if (!memcmp(argv1, "--sulog", sizeof("--sulog")) && !argv2) {	
 		unsigned long sulog_index_next;
 		char sulog_buf[SULOG_BUFSIZ];
 		char t[] = "sym: ? uid: ??????";
