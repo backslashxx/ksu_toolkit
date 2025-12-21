@@ -115,29 +115,27 @@ static int dumb_str_to_appuid(const char *str)
 }
 
 /*
- *	long_to_str_wn, long to string + newline
+ *	long_to_str_wn, long to string
  *	
- *	converts an int to string with expected len and adds a newline
- *	make sure buf size is len + 1
+ *	converts an int to string with expected len
  *	
  *	caller is reposnible for sanity!
  *	no bounds check, no nothing
  *	
  *	example:
- *	long_to_str_wn(10123, 5, buf); // where buf is char buf[6];
+ *	long_to_str_wn(10123, 5, buf); // where buf is char buf[5]; atleast
  */
 
 __attribute__((noinline))
-static void long_to_str_wn(long number, unsigned long len, char *buf)
+static void long_to_str(long number, unsigned long len, char *buf)
 {
 	int i = len - 1;
 	while (!(i < 0)) {
 		buf[i] = 48 + (number % 10);
 		number = number / 10;
 		i--;			
-	} 
-
-	buf[len] = '\n';
+	}
+	return;
 }
 
 __attribute__((always_inline))
@@ -194,9 +192,9 @@ static int c_main(int argc, char **argv, char **envp)
 		if (!(cmd.uid > 10000 && cmd.uid < 20000))
 			goto fail;
 
-		char gbuf[6]; // +1 for \n
+		char gbuf[6] = { [5] = '\n' };
 
-		long_to_str_wn(cmd.uid, sizeof(gbuf) - 1, gbuf);
+		long_to_str(cmd.uid, 5, gbuf);
 
 		print_out(gbuf, sizeof(gbuf));
 		
@@ -290,8 +288,9 @@ static int c_main(int argc, char **argv, char **envp)
 		// so we cannot use strlen on the print, as there will be no null term on the buffer
 		if (entry_ptr->symbol) {
 			t[5] = entry_ptr->symbol;
-			long_to_str_wn(entry_ptr->uid, 6, &t[12]);
-			print_out(t, sizeof(t));			
+			long_to_str(entry_ptr->uid, 5, &t[12]);
+			t[strlen(t)] = '\n';
+			print_out(t, sizeof(t));
 		}
 
 		i++;
@@ -308,6 +307,11 @@ static int c_main(int argc, char **argv, char **envp)
 		char sulog_buf[SULOG_BUFSIZ];
 		char uptime_text[] = "uptime: ???????????";
 
+		uptime_text[strlen(uptime_text)] = '\n';
+
+		char text_v2[] = "sym: ? uid ?????? time: ???????????";
+		text_v2[strlen(text_v2)] = '\n';
+
 		struct sulog_entry_rcv_ptr sbuf = {0};
 		
 		sbuf.index_ptr = (uint64_t)&sulog_index_next;
@@ -323,27 +327,37 @@ static int c_main(int argc, char **argv, char **envp)
 		if (!(*(uintptr_t *)&sbuf == (uintptr_t)&sbuf) )
 			goto fail;
 
-		long_to_str_wn(sulog_uptime, 11, &uptime_text[8]);
+		long_to_str(sulog_uptime, 11, &uptime_text[8]);
 		print_out(uptime_text, sizeof(uptime_text));
 
-#if 0
-		sulog_loop_start:		
+	sulog_loop_start:		
 		int idx = (start + i) % SULOG_ENTRY_MAX; // modulus due to this overflowing entry_max
 		struct sulog_entry *entry_ptr = (struct sulog_entry *)(sulog_buf + idx * sizeof(struct sulog_entry) );
 
 		if (entry_ptr->data) {
-			uint32_t uid = {0};
-			memcpy(&uid, (void *)&(*entry_ptr).data, 3);
-			char sym[1] = {0};
-			memcpy(&sym, (void *)&(*entry_ptr).data + 3, 1);
-			printf("sym: %c uid: %.6d time: %.11u\n", sym[0], uid, entry_ptr->s_time);
+			// now write symbol
+			text_v2[5] = *((char *)&(*entry_ptr).data + 3);
+
+			// now write uid
+			// WARNING! Little Endian only!
+			uint8_t buf[4] = {0}; // uint32_t equivalent
+			buf[0] = *((char *)&(*entry_ptr).data + 0);
+			buf[1] = *((char *)&(*entry_ptr).data + 1);
+			buf[2] = *((char *)&(*entry_ptr).data + 2);
+
+			// force dereference as uint32_t
+			long_to_str(*(uint32_t *)&buf, 6, &text_v2[11]);
+
+			long_to_str(entry_ptr->s_time, 11, &text_v2[24]);
+
+			print_out(text_v2, sizeof(text_v2));
 		}
 
 		i++;
 
 		if (i < SULOG_ENTRY_MAX)
 			goto sulog_loop_start;
-#endif
+
 		return 0;
 	}
 show_usage:
