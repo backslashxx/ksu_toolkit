@@ -32,6 +32,13 @@ if ! "$MODPATH/toolkit" --setuid "$current_uid" >/dev/null 2>&1; then
 	abort "[!] custom interface not available!"
 fi
 
+# add symlink
+KSU_BIN_DIR="/data/adb/ksu/bin"
+if [ -d "$KSU_BIN_DIR" ]; then
+	echo "[+] creating symlink in $KSU_BIN_DIR"
+	busybox ln -sf "/data/adb/modules/ksu_toolkit/toolkit" "$KSU_BIN_DIR/toolkit"
+fi
+
 OLD_MODULE_DIR="/data/adb/modules/ksu_switch_manager"
 if [ -d "$OLD_MODULE_DIR" ]; then
 	touch "$OLD_MODULE_DIR/remove"
