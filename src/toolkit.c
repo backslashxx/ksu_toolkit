@@ -143,8 +143,7 @@ static inline int sulogv1()
 {
 	unsigned long sulog_index_next;
 	char sulogv1_buf[SULOGV1_BUFSIZ];
-	char t[] = "sym: ? uid: ??????";
-	t[sizeof(t)-1] = '\n'; // \0 -> \n
+	char t[] = "sym: ? uid: ??????\n";
 
 	struct sulogv1_entry_rcv_ptr sbuf = {0};
 	
@@ -169,7 +168,7 @@ static inline int sulogv1()
 	if (entry_ptr->symbol) {
 		t[5] = entry_ptr->symbol;
 		long_to_str(entry_ptr->uid, 6, &t[12]);
-		print_out(t, sizeof(t));
+		print_out(t, sizeof(t) - 1 );
 	}
 
 	i++;
@@ -306,11 +305,9 @@ static int c_main(int argc, char **argv, char **envp)
 		uint32_t sulog_index_next;
 		uint32_t sulog_uptime = 0;
 		char sulog_buf[SULOG_BUFSIZ];
-		char uptime_text[] = "uptime: ??????????";
-		uptime_text[sizeof(uptime_text) - 1] = '\n'; // \0 -> \n
+		char uptime_text[] = "uptime: ??????????\n";
 
-		char text_v2[] = "sym: ? uid ?????? time: ??????????";
-		text_v2[sizeof(text_v2) -1] = '\n'; // \0 -> \n
+		char text_v2[] = "sym: ? uid: ?????? time: ??????????\n";
 
 		struct sulog_entry_rcv_ptr sbuf = {0};
 		
@@ -346,11 +343,11 @@ static int c_main(int argc, char **argv, char **envp)
 			buf[2] = *((char *)&(*entry_ptr).data + 2);
 
 			// force dereference as uint32_t
-			long_to_str(*(uint32_t *)&buf, 6, &text_v2[11]);
+			long_to_str(*(uint32_t *)&buf, 6, &text_v2[12]);
 
-			long_to_str(entry_ptr->s_time, 10, &text_v2[24]);
+			long_to_str(entry_ptr->s_time, 10, &text_v2[25]);
 
-			print_out(text_v2, sizeof(text_v2));
+			print_out(text_v2, sizeof(text_v2) - 1 );
 		}
 
 		i++;
