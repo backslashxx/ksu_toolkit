@@ -265,6 +265,7 @@ static int c_main(int argc, char **argv, char **envp)
 		unsigned long sulog_index_next;
 		char sulog_buf[SULOGV1_BUFSIZ];
 		char t[] = "sym: ? uid: ??????";
+		t[strlen(t)] = '\n';
 
 		struct sulogv1_entry_rcv_ptr sbuf = {0};
 		
@@ -288,7 +289,7 @@ static int c_main(int argc, char **argv, char **envp)
 		// so we cannot use strlen on the print, as there will be no null term on the buffer
 		if (entry_ptr->symbol) {
 			t[5] = entry_ptr->symbol;
-			long_to_str(entry_ptr->uid, 5, &t[12]);
+			long_to_str(entry_ptr->uid, 6, &t[12]);
 			t[strlen(t)] = '\n';
 			print_out(t, sizeof(t));
 		}
