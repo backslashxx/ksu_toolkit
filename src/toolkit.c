@@ -115,7 +115,7 @@ static int dumb_str_to_appuid(const char *str)
 }
 
 /*
- *	long_to_str_wn, long to string
+ *	long_to_str, long to string
  *	
  *	converts an int to string with expected len
  *	
@@ -123,7 +123,7 @@ static int dumb_str_to_appuid(const char *str)
  *	no bounds check, no nothing
  *	
  *	example:
- *	long_to_str_wn(10123, 5, buf); // where buf is char buf[5]; atleast
+ *	long_to_str(10123, 5, buf); // where buf is char buf[5]; atleast
  */
 
 __attribute__((noinline))
@@ -306,11 +306,9 @@ static int c_main(int argc, char **argv, char **envp)
 		uint32_t sulog_uptime = 0;
 		char sulog_buf[SULOG_BUFSIZ];
 		char uptime_text[] = "uptime: ??????????\n";
-
 		char text_v2[] = "sym: ? uid: ?????? time: ??????????\n";
 
 		struct sulog_entry_rcv_ptr sbuf = {0};
-		
 		sbuf.index_ptr = (uint64_t)&sulog_index_next;
 		sbuf.buf_ptr = (uint64_t)sulog_buf;
 		sbuf.uptime_ptr = (uint64_t)&sulog_uptime;
@@ -342,7 +340,7 @@ static int c_main(int argc, char **argv, char **envp)
 			buf[1] = *((char *)&(*entry_ptr).data + 1);
 			buf[2] = *((char *)&(*entry_ptr).data + 2);
 
-			// force dereference as uint32_t
+			// force cast as uint32_t
 			long_to_str(*(uint32_t *)&buf, 6, &text_v2[12]);
 
 			long_to_str(entry_ptr->s_time, 10, &text_v2[25]);
