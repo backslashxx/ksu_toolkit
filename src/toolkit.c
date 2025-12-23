@@ -43,7 +43,7 @@ struct sulogv1_entry_rcv_ptr {
 struct sulog_entry {
 	uint32_t s_time; // uptime in seconds
 	uint32_t data : 24;  // uid, uint24_t
-	uint8_t sym;        // symbol
+	uint32_t sym : 8;        // symbol
 } __attribute__((packed));
 
 struct sulog_entry_rcv_ptr {
