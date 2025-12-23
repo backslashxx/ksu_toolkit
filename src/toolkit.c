@@ -102,6 +102,17 @@ static void ksu_sys_reboot(long magic2, long cmd, long arg)
 	__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, magic2, cmd, arg, NONE, NONE);
 }
 
+/*
+ * sys_ioctl, literally ioctl()
+ * duh
+ *
+ */
+__attribute__((always_inline))
+static int sys_ioctl(unsigned long fd, unsigned long cmd, unsigned long arg)
+{
+	return (int)__syscall(SYS_ioctl, fd, cmd, arg, NONE, NONE, NONE);
+}
+
 __attribute__((always_inline))
 static int dumb_str_to_appuid(const char *str)
 {
@@ -235,7 +246,7 @@ static int c_main(int argc, char **argv, char **envp)
 			goto fail;
 
 		struct ksu_get_manager_uid_cmd cmd;
-		int ret = __syscall(SYS_ioctl, fd, KSU_IOCTL_GET_MANAGER_UID, (long)&cmd, NONE, NONE, NONE);
+		int ret = sys_ioctl(fd, KSU_IOCTL_GET_MANAGER_UID, (long)&cmd);
 		if (ret)
 			goto fail;
 
@@ -264,7 +275,7 @@ static int c_main(int argc, char **argv, char **envp)
 		// cmd.flags = 0;
 		cmd.mode = KSU_UMOUNT_GETSIZE;
 
-		int ret = __syscall(SYS_ioctl, fd, KSU_IOCTL_ADD_TRY_UMOUNT, (long)&cmd, NONE, NONE, NONE);
+		int ret = sys_ioctl(fd, KSU_IOCTL_ADD_TRY_UMOUNT, (long)&cmd);
 		if (ret < 0)
 			goto fail;
 
@@ -283,7 +294,7 @@ static int c_main(int argc, char **argv, char **envp)
 		// cmd.flags = 0;
 		cmd.mode = KSU_UMOUNT_GETLIST;
 
-		ret = __syscall(SYS_ioctl, fd, KSU_IOCTL_ADD_TRY_UMOUNT, (long)&cmd, NONE, NONE, NONE);
+		ret = sys_ioctl(fd, KSU_IOCTL_ADD_TRY_UMOUNT, (long)&cmd);
 		if (ret < 0)
 			goto fail;
 
