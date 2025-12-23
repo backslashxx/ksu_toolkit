@@ -167,7 +167,7 @@ __attribute__((always_inline))
 static inline int sulogv1()
 {
 	unsigned long sulog_index_next;
-	char sulogv1_buf[SULOGV1_BUFSIZ];
+	char *sulogv1_buf = alloca(SULOGV1_BUFSIZ);
 	char t[] = "sym: ? uid: ??????\n";
 
 	struct sulogv1_entry_rcv_ptr sbuf = {0};
@@ -183,12 +183,10 @@ static inline int sulogv1()
 
 	int i = 0;
 
-	sulogv1_loop_start:
+sulogv1_loop_start:
 	int idx = (start + i) % SULOGV1_ENTRY_MAX; // modulus due to this overflowing entry_max
 	struct sulogv1_entry *entry_ptr = (struct sulogv1_entry *)(sulogv1_buf + idx * sizeof(struct sulogv1_entry) );
 
-	// NOTE: we replace \0 with \n on the buffer
-	// so we cannot use strlen on the print, as there will be no null term on the buffer
 	if (entry_ptr->symbol) {
 		t[5] = entry_ptr->symbol;
 		long_to_str(entry_ptr->uid, 6, &t[12]);
@@ -326,7 +324,7 @@ static int c_main(int argc, char **argv, char **envp)
 	if (!memcmp(argv1, "--sulog", sizeof("--sulog")) && !argv2) {
 		uint32_t sulog_index_next;
 		uint32_t sulog_uptime = 0;
-		char sulog_buf[SULOG_BUFSIZ];
+		char *sulog_buf = alloca(SULOG_BUFSIZ);
 		char uptime_text[] = "uptime: ??????????\n";
 		char text_v2[] = "sym: ? uid: ?????? time: ??????????\n";
 
@@ -336,7 +334,10 @@ static int c_main(int argc, char **argv, char **envp)
 		sbuf.uptime_ptr = (uint64_t)&sulog_uptime;
 
 		ksu_sys_reboot(GET_SULOG_DUMP_V2, 0, (long)&sbuf);
-		
+
+		// sulog_index_next is the oldest entry!
+		// and sulog_index_next -1 is the newest entry
+		// we start listing from the oldest entry		
 		int start = sulog_index_next;
 
 		int i = 0;
