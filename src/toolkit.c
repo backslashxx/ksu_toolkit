@@ -71,7 +71,7 @@ static unsigned long strlen(const char *str)
 	return s - str;
 }
 
-__attribute__((noinline))
+__attribute__((always_inline))
 static void __fprintf(long fd, const char *buf, unsigned long len)
 {
 	__syscall(SYS_write, fd, (long)buf, len, NONE, NONE, NONE);
@@ -83,7 +83,7 @@ static void print_out(const char *buf, unsigned long len)
 	__fprintf(1, buf, len);
 }
 
-__attribute__((always_inline))
+__attribute__((noinline))
 static void print_err(const char *buf, unsigned long len)
 {
 	__fprintf(2, buf, len);
