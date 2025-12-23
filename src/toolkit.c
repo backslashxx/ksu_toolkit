@@ -353,7 +353,7 @@ static int c_main(int argc, char **argv, char **envp)
 		if (entry_ptr->data) {
 			// now write symbol
 			text_v2[5] = *((char *)&(*entry_ptr).data + 3);
-
+#if 1
 			// now write uid
 			// WARNING! Little Endian only!
 			uint8_t buf[4] = {0}; // uint32_t equivalent
@@ -363,6 +363,12 @@ static int c_main(int argc, char **argv, char **envp)
 
 			// force cast as uint32_t
 			long_to_str(*(uint32_t *)&buf, 6, &text_v2[12]);
+
+#else // this somehow generates larger code, keeping it here for reference
+			// zero out symbol position
+			*((char *)&(*entry_ptr).data + 3) = 0;
+			long_to_str(entry_ptr->data, 6, &text_v2[12]);
+#endif
 
 			long_to_str(entry_ptr->s_time, 10, &text_v2[25]);
 
