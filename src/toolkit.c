@@ -42,7 +42,8 @@ struct sulogv1_entry_rcv_ptr {
 // sulog v2, timestamped version, 250 entries, 8 bytes per entry
 struct sulog_entry {
 	uint32_t s_time; // uptime in seconds
-	uint32_t data; // uint8_t[0,1,2] = uid, basically uint24_t, uint8_t[3] = symbol
+	uint32_t data : 24;  // uid, uint24_t
+	uint8_t sym;        // symbol
 } __attribute__((packed));
 
 struct sulog_entry_rcv_ptr {
@@ -352,24 +353,8 @@ static int c_main(int argc, char **argv, char **envp)
 
 		if (entry_ptr->data) {
 			// now write symbol
-			text_v2[5] = *((char *)&(*entry_ptr).data + 3);
-#if 1
-			// now write uid
-			// WARNING! Little Endian only!
-			uint8_t buf[4] = {0}; // uint32_t equivalent
-			buf[0] = *((char *)&(*entry_ptr).data + 0);
-			buf[1] = *((char *)&(*entry_ptr).data + 1);
-			buf[2] = *((char *)&(*entry_ptr).data + 2);
-
-			// force cast as uint32_t
-			long_to_str(*(uint32_t *)&buf, 6, &text_v2[12]);
-
-#else // this somehow generates larger code, keeping it here for reference
-			// zero out symbol position
-			*((char *)&(*entry_ptr).data + 3) = 0;
+			text_v2[5] = entry_ptr->sym;
 			long_to_str(entry_ptr->data, 6, &text_v2[12]);
-#endif
-
 			long_to_str(entry_ptr->s_time, 10, &text_v2[25]);
 
 			print_out(text_v2, sizeof(text_v2) - 1 );
