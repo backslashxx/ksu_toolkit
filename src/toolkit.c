@@ -167,7 +167,7 @@ __attribute__((always_inline))
 static inline int sulogv1()
 {
 	unsigned long sulog_index_next;
-	char *sulogv1_buf = alloca(SULOGV1_BUFSIZ);
+	char sulogv1_buf[SULOGV1_BUFSIZ];
 	char t[] = "sym: ? uid: ??????\n";
 
 	struct sulogv1_entry_rcv_ptr sbuf = {0};
@@ -330,7 +330,7 @@ static int c_main(int argc, char **argv, char **envp)
 	if (!memcmp(argv1, "--sulog", sizeof("--sulog")) && !argv2) {
 		uint32_t sulog_index_next;
 		uint32_t sulog_uptime = 0;
-		char *sulog_buf = alloca(SULOG_BUFSIZ);
+		char sulog_buf[SULOG_BUFSIZ];
 		char uptime_text[] = "uptime: ??????????\n";
 		char text_v2[] = "sym: ? uid: ?????? time: ??????????\n";
 
@@ -343,7 +343,7 @@ static int c_main(int argc, char **argv, char **envp)
 
 		// sulog_index_next is the oldest entry!
 		// and sulog_index_next -1 is the newest entry
-		// we start listing from the oldest entry		
+		// we start listing from the oldest entry
 		int start = sulog_index_next;
 
 		int i = 0;
