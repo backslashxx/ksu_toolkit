@@ -77,7 +77,7 @@ static void __fprintf(long fd, const char *buf, unsigned long len)
 	__syscall(SYS_write, fd, (long)buf, len, NONE, NONE, NONE);
 }
 
-__attribute__((always_inline))
+__attribute__((noinline))
 static void print_out(const char *buf, unsigned long len)
 {
 	__fprintf(1, buf, len);
@@ -146,7 +146,6 @@ static inline int sulogv1()
 	char t[] = "sym: ? uid: ??????\n";
 
 	struct sulogv1_entry_rcv_ptr sbuf = {0};
-	
 	sbuf.int_ptr = (uint64_t)&sulog_index_next;
 	sbuf.buf_ptr = (uint64_t)sulogv1_buf;
 
