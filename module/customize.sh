@@ -46,7 +46,7 @@ if [ -d "$OLD_MODULE_DIR" ]; then
 fi
 
 echo "[?] hot install?"
-echo "[+] press volume up within 3 seconds if so."
+echo "[!] press volume up within 3 seconds if so."
 if [ "$(busybox timeout 3 /system/bin/getevent -lq | grep -q KEY_VOLUMEUP 2>/dev/null ; echo $?)" -eq 0 ]; then
 
 	echo "[+] hot install forked to background"
@@ -57,7 +57,8 @@ if [ "$(busybox timeout 3 /system/bin/getevent -lq | grep -q KEY_VOLUMEUP 2>/dev
 		busybox cp -Lrf "$MODPATH"/* "$MODDIR" ; 
 		busybox rm -rf "$MODPATH"
 	) & # fork in background
-
+else
+	echo "[!] no volume up within 3 seconds"
+	echo "[+] performing normal install"
 fi
-
 # EOF
