@@ -169,11 +169,12 @@ start:
 }
 
 __attribute__((always_inline))
-static inline int sulogv1()
+static inline int sulogv1(char **envp)
 {
 	unsigned long sulog_index_next;
-	char sulogv1_buf[SULOGV1_BUFSIZ];
 	char t[] = "sym: ? uid: ??????\n";
+
+	char *sulogv1_buf = envp[0]; // we reuse envp as buffer
 
 	struct sulogv1_entry_rcv_ptr sbuf = {0};
 	sbuf.int_ptr = (uint64_t)&sulog_index_next;
@@ -334,9 +335,10 @@ static int c_main(int argc, char **argv, char **envp)
 	if (!memcmp(argv1, "--sulog", sizeof("--sulog")) && !argv2) {
 		uint32_t sulog_index_next;
 		uint32_t sulog_uptime = 0;
-		char sulog_buf[SULOG_BUFSIZ];
 		char uptime_text[] = "uptime: ??????????\n";
 		char text_v2[] = "sym: ? uid: ?????? time: ??????????\n";
+
+		char *sulog_buf = envp[0]; // we reuse envp as buffer
 
 		struct sulog_entry_rcv_ptr sbuf = {0};
 		sbuf.index_ptr = (uint64_t)&sulog_index_next;
@@ -353,7 +355,7 @@ static int c_main(int argc, char **argv, char **envp)
 		int i = 0;
 
 		if (!(*(uintptr_t *)&sbuf == (uintptr_t)&sbuf) )
-			return sulogv1(); // attempt v1
+			return sulogv1(envp); // attempt v1
 
 		long_to_str(sulog_uptime, 10, &uptime_text[8]);
 		print_out(uptime_text, sizeof(uptime_text));
