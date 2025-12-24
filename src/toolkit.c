@@ -209,7 +209,7 @@ sulogv1_loop_start:
 __attribute__((always_inline))
 static int c_main(int argc, char **argv, char **envp)
 {
-	const char ok[] = "ok\n";
+	const char ok[] = { 'o', 'k', '\n'};
 	const char usage[] =
 	"Usage:\n"
 	"./toolkit --setuid <uid>\n"
@@ -240,7 +240,7 @@ static int c_main(int argc, char **argv, char **envp)
 		if (*(uintptr_t *)argv1 != (uintptr_t)argv1 )
 			goto fail;
 		
-		print_out(ok, sizeof(ok) - 1 );
+		print_out(ok, sizeof(ok));
 		return 0;
 
 	}
