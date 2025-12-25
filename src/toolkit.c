@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 #include <ctype.h>
+#include <sys/mman.h>
+#include <stddef.h>
 
 #include "small_rt.h"
 
@@ -173,6 +175,7 @@ static inline int sulogv1(char **envp)
 {
 	uint32_t sulog_index_next;
 	char t[] = "sym: ? uid: ??????\n";
+	int idx;
 
 	char *sulogv1_buf = envp[0]; // we reuse envp as buffer
 
@@ -190,7 +193,7 @@ static inline int sulogv1(char **envp)
 	int i = 0;
 
 sulogv1_loop_start:
-	int idx = (start + i) % SULOGV1_ENTRY_MAX; // modulus due to this overflowing entry_max
+	idx = (start + i) % SULOGV1_ENTRY_MAX; // modulus due to this overflowing entry_max
 	struct sulogv1_entry *entry_ptr = (struct sulogv1_entry *)(sulogv1_buf + idx * sizeof(struct sulogv1_entry) );
 
 	if (entry_ptr->symbol) {
@@ -276,6 +279,7 @@ static int c_main(int argc, char **argv, char **envp)
 	// --getlist
 	if (!memcmp(&argv1[2], "getlist", sizeof("getlist")) && !argv2) {
 		uint32_t total_size;
+		int len;
 
 		ksu_sys_reboot(KSU_INSTALL_MAGIC2, 0, (long)&fd);
 		if (!fd)
@@ -298,7 +302,8 @@ static int c_main(int argc, char **argv, char **envp)
 		//	__builtin_trap();
 
 		// now we can prepare the same size of memory
-		char *buffer = alloca(total_size);
+		char *buffer = (char *)__syscall(SYS_mmap, 0, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		//char *buffer = alloca(total_size);
 
 		cmd.arg = (uint64_t)buffer;
 		// cmd.flags = 0;
@@ -313,7 +318,7 @@ static int c_main(int argc, char **argv, char **envp)
 
 	bufwalk_start:
 		// get entry's string length first
-		int len = strlen(char_buf);
+		len = strlen(char_buf);
 
 		// write a newline to it, basically replacing \0 with \n
 		*(char_buf + len) = '\n';
@@ -340,6 +345,8 @@ static int c_main(int argc, char **argv, char **envp)
 
 		char *sulog_buf = envp[0]; // we reuse envp as buffer
 
+		int idx;
+
 		struct sulog_entry_rcv_ptr sbuf = {0};
 		sbuf.index_ptr = (uint64_t)&sulog_index_next;
 		sbuf.buf_ptr = (uint64_t)sulog_buf;
@@ -361,7 +368,7 @@ static int c_main(int argc, char **argv, char **envp)
 		print_out(uptime_text, sizeof(uptime_text));
 
 	sulog_loop_start:		
-		int idx = (start + i) % SULOG_ENTRY_MAX; // modulus due to this overflowing entry_max
+		idx = (start + i) % SULOG_ENTRY_MAX; // modulus due to this overflowing entry_max
 		struct sulog_entry *entry_ptr = (struct sulog_entry *)(sulog_buf + idx * sizeof(struct sulog_entry) );
 
 		// make sure to check for symbol instead!
