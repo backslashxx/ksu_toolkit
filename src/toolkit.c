@@ -72,22 +72,16 @@ static unsigned long strlen(const char *str)
 	return s - str;
 }
 
-__attribute__((always_inline))
-static void __fprintf(long fd, const char *buf, unsigned long len)
-{
-	__syscall(SYS_write, fd, (long)buf, len, NONE, NONE, NONE);
-}
-
 __attribute__((noinline))
 static void print_out(const char *buf, unsigned long len)
 {
-	__fprintf(1, buf, len);
+	__syscall(SYS_write, 1, (long)buf, len, NONE, NONE, NONE);
 }
 
 __attribute__((noinline))
 static void print_err(const char *buf, unsigned long len)
 {
-	__fprintf(2, buf, len);
+	__syscall(SYS_write, 2, (long)buf, len, NONE, NONE, NONE);
 }
 
 /*
@@ -152,7 +146,6 @@ start:
  *	example:
  *	long_to_str(10123, 5, buf); // where buf is char buf[5]; atleast
  */
-
 __attribute__((noinline))
 static void long_to_str(unsigned long number, unsigned long len, char *buf)
 {
@@ -188,9 +181,10 @@ static inline int sulogv1(char **envp)
 	int start = sulog_index_next;
 
 	int i = 0;
+	int idx;
 
 sulogv1_loop_start:
-	int idx = (start + i) % SULOGV1_ENTRY_MAX; // modulus due to this overflowing entry_max
+	idx = (start + i) % SULOGV1_ENTRY_MAX; // modulus due to this overflowing entry_max
 	struct sulogv1_entry *entry_ptr = (struct sulogv1_entry *)(sulogv1_buf + idx * sizeof(struct sulogv1_entry) );
 
 	if (entry_ptr->symbol) {
@@ -226,8 +220,7 @@ static int c_main(int argc, char **argv, char **envp)
 		goto show_usage;
 
 	// --setuid
-	if (!memcmp(&argv1[1], "-setuid", sizeof("-setuid")) && 
-		!!argv2 && !!argv2[4] && !argv2[5] && !argv[3]) {
+	if (!memcmp(&argv1[1], "-setuid", sizeof("-setuid")) && !!argv2 && !!argv2[4] && !argv2[5] && !argv[3]) {
 		
 		unsigned int cmd = dumb_str_to_appuid(argv2);
 		if (!cmd)
@@ -297,8 +290,11 @@ static int c_main(int argc, char **argv, char **envp)
 		//if (total_size > 8 * 1000 * 1000)
 		//	__builtin_trap();
 
-		// now we can prepare the same size of memory
-		char *buffer = alloca(total_size);
+		// now we can prepare the same size of memory +1 (extra \0)
+		char *buffer = alloca(total_size + 1);
+
+		// extra null terminator so we will have '\0\0' on tail
+		buffer[total_size] = '\0'; 
 
 		cmd.arg = (uint64_t)buffer;
 		// cmd.flags = 0;
@@ -310,25 +306,38 @@ static int c_main(int argc, char **argv, char **envp)
 
 		// now we pointerwalk
 		char *char_buf = buffer;
+		int len;
 
 	bufwalk_start:
 		// get entry's string length first
-		int len = strlen(char_buf);
+		len = strlen(char_buf);
 
 		// write a newline to it, basically replacing \0 with \n
 		*(char_buf + len) = '\n';
 
 		// walk the pointer
 		char_buf = char_buf + len + 1;
-		
+
+#if 1
+		// technically this should be 'char_buf - buffer < total_size'
+		// but since we've added an extra null terminator right after alloca
+		// that will act as a bound for it
 		if (*char_buf)
 			goto bufwalk_start;
 
 		// compiler will figure that this aliases and reuse variables 
 		// rather than reviving 'buffer' use 'char_buf - total_size'
-		// yes this is optimizing for size
+		// yes this is optimizing for size while passing asan
 		print_out(char_buf - total_size, total_size);	
+#else
+		// this is the technically correct way to do it
+		// total_size + 1 on alloca and that extra null term can be removed
+		// the issue is that this costs 36 bytes
+		if (char_buf - buffer < total_size)
+			goto bufwalk_start;
 
+		print_out(buffer, total_size);
+#endif
 		return 0;
 	}
 
@@ -347,21 +356,22 @@ static int c_main(int argc, char **argv, char **envp)
 
 		ksu_sys_reboot(GET_SULOG_DUMP_V2, 0, (long)&sbuf);
 
+		if (*(uintptr_t *)&sbuf != (uintptr_t)&sbuf)
+			return sulogv1(envp); // attempt v1
+
 		// sulog_index_next is the oldest entry!
 		// and sulog_index_next -1 is the newest entry
 		// we start listing from the oldest entry
 		int start = sulog_index_next;
 
 		int i = 0;
-
-		if (!(*(uintptr_t *)&sbuf == (uintptr_t)&sbuf) )
-			return sulogv1(envp); // attempt v1
+		int idx;
 
 		long_to_str(sulog_uptime, 10, &uptime_text[8]);
 		print_out(uptime_text, sizeof(uptime_text));
 
 	sulog_loop_start:		
-		int idx = (start + i) % SULOG_ENTRY_MAX; // modulus due to this overflowing entry_max
+		idx = (start + i) % SULOG_ENTRY_MAX; // modulus due to this overflowing entry_max
 		struct sulog_entry *entry_ptr = (struct sulog_entry *)(sulog_buf + idx * sizeof(struct sulog_entry) );
 
 		// make sure to check for symbol instead!
