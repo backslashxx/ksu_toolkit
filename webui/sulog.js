@@ -37,19 +37,19 @@ function getSulog() {
     const result = spawn(`${bin}`, ['--sulog'], { env: { PATH: `${modDir}` }});
     result.stdout.on('data', (data) => {
         if (data.trim().includes('uptime')) {
-            upTime = parseInt(data.trim().split(' ')[1]);
+            upTime = BigInt(data.trim().split(' ')[1] || 0);
             return;
         }
         // output format = sym: i uid: 010230 time: 0000000154
         const symbol = data.trim().split(' ')[1];
         const userId = parseInt(data.trim().split(' ')[3]);
-        const timeStamp = data.trim().split(' ')[5] ? parseInt(data.trim().split(' ')[5]) : 0;
+        const timeStamp = BigInt(data.trim().split(' ')[5] || 0);
         copy.push({ uid: userId, sym: symbol, time: timeStamp });
     });
     result.on('exit', () => {
         if (import.meta.env.DEV) { // Vite debug
-            upTime = 800;
-            copy.push({ uid: 10008, sym: '$', time: 20 });
+            upTime = 800n;
+            copy.push({ uid: 10008, sym: '$', time: 20n });
         }
 
         // Since sulog give a maximum 250 lines of output so we need this to compare the overlapping length

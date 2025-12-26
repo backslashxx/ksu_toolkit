@@ -295,7 +295,7 @@ export function appendSuLogList(newList, currentDate) {
         const operations = sulogModule.symbolMap[item.sym] || [item.sym];
         const operation = operations.map(op => `<div class="operation ${op}">${op}</div>`).join('');
         const app = sulogModule.appList.find(a => a.uid === item.uid);
-        const timestamp = new Date(currentDate - sulogModule.upTime * 1000 + item.time * 1000);
+        const timestamp = new Date(Number(BigInt(currentDate) - BigInt(sulogModule.upTime) * 1000n + BigInt(item.time) * 1000n));
         const year = timestamp.getFullYear();
         const month = String(timestamp.getMonth() + 1).padStart(2, '0');
         const day = String(timestamp.getDate()).padStart(2, '0');
@@ -353,13 +353,13 @@ function checkUpdate() {
         const zipURL = doc.querySelector('a[href$=".zip"]')?.href;
 
         if (!zipURL) return;
-        const remoteVersion = parseInt(zipURL.split("-")[1]) || 0;
+        const remoteVersion = BigInt(zipURL.split("-")[1] || 0);
 
         exec(
             `cat /data/adb/modules_update/ksu_toolkit/module.prop ${modDir}/module.prop | grep "^versionCode=" | head -n1 | cut -d= -f2`
         ).then((local) => {
             if (local.stdout.trim() === '') return;
-            const localVersion = parseInt(local.stdout.trim());
+            const localVersion = BigInt(local.stdout.trim() || 0);
             if (localVersion < remoteVersion) {
                 toast("Update available!");
                 document.getElementById('update-btn').classList.add('show');

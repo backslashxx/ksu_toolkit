@@ -84,7 +84,7 @@ async function getUmountProvider() {
         if (import.meta.env.DEV) { // Vite debug
             umountProvider = "zygisknext";
         } else if (output.includes("enforce_denylist")) {
-            if (parseInt(output.split(':')[1] !== 0)) {
+            if (parseInt(output.split(':')[1]) !== 0) {
                 umountProvider = "zygisknext";
             }
         } else if (output.tolower().includes("neozygisk")) {
