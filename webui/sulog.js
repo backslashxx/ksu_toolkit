@@ -18,7 +18,7 @@ async function getAppList() {
             appList.push({
                 packageName: pkg.packageName,
                 appLabel: pkg.appLabel,
-                uid: pkg.uid
+                uid: BigInt(pkg.uid)
             });
         });
     } catch (e) {
@@ -42,7 +42,7 @@ function getSulog() {
         }
         // output format = sym: i uid: 010230 time: 0000000154
         const symbol = data.trim().split(' ')[1];
-        const userId = parseInt(data.trim().split(' ')[3]);
+        const userId = BigInt(data.trim().split(' ')[3] || 0);
         const timeStamp = BigInt(data.trim().split(' ')[5] || 0);
         copy.push({ uid: userId, sym: symbol, time: timeStamp });
     });

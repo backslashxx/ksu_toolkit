@@ -65,8 +65,8 @@ async function getMountEntryList() {
                 mount_point: decodeEscapes(mount_point),
                 fs_type: decodeEscapes(fs_type),
                 options: options.split(','),
-                dump: parseInt(dump_str, 10),
-                pass: parseInt(pass_str, 10)
+                dump: BigInt(dump_str || 0),
+                pass: BigInt(pass_str || 0)
             };
             mountEntryList.push(mountEntry);
         });
@@ -84,7 +84,7 @@ async function getUmountProvider() {
         if (import.meta.env.DEV) { // Vite debug
             umountProvider = "zygisknext";
         } else if (output.includes("enforce_denylist")) {
-            if (parseInt(output.split(':')[1]) !== 0) {
+            if (BigInt(output.split(':')[1] || 0) !== 0n) {
                 umountProvider = "zygisknext";
             }
         } else if (output.tolower().includes("neozygisk")) {

@@ -24,7 +24,7 @@ async function getKsuManager() {
                     manager.push({
                         packageName: pkg.packageName,
                         appLabel: pkg.appLabel,
-                        uid: pkg.uid
+                        uid: BigInt(pkg.uid)
                     });
                 });
             } catch (e) {
@@ -44,7 +44,7 @@ async function getKsuManager() {
 async function getCurrentUid() {
     await exec(`${bin} --getuid`, { env: { PATH: `$PATH:${modDir}` }}).then((result) => {
         if (result.errno !== 0 || result.stdout.trim() === '') return;
-        currentUid = result.stdout.trim();
+        currentUid = BigInt(result.stdout.trim());
     }).catch(() => { });
 }
 
