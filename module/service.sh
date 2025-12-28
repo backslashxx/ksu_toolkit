@@ -19,6 +19,11 @@ if [ -f "$KSUDIR/.manager_uid" ]; then
 	fi
 fi
 
+if [ -f "$KSUDIR/.manager_version" ]; then
+	version=$(head -n1 "$KSUDIR/.manager_version")
+	[ -z $version ] || "$MODDIR/toolkit" --setver "$version" > /dev/null 2>&1
+fi
+
 # wait for boot-complete
 until [ "$(getprop sys.boot_completed)" = "1" ]; do
 	sleep 1
