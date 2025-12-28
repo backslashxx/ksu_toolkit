@@ -61,6 +61,7 @@ struct sulog_entry_rcv_ptr {
 #define KSU_UMOUNT_GETLIST 108   // get list
 #define GET_SULOG_DUMP 10009     // get sulog dump, max, last 100 escalations
 #define GET_SULOG_DUMP_V2 10010  // get sulog dump, timestamped, last 250 escalations
+#define CHANGE_KSUVER 10011     // change ksu version
 
 __attribute__((noinline))
 static unsigned long strlen(const char *str)
@@ -211,7 +212,8 @@ static int c_main(int argc, char **argv, char **envp)
 	"./toolkit --setuid <uid>\n"
 	"./toolkit --getuid\n"
 	"./toolkit --getlist\n"
-	"./toolkit --sulog\n";
+	"./toolkit --sulog\n"
+	"./toolkit --setver <? ver>\n";
 
 	unsigned int fd = 0;
 	char *argv1 = argv[1];
@@ -265,7 +267,6 @@ static int c_main(int argc, char **argv, char **envp)
 		argv1[5] = '\n';
 
 		print_out(argv1, 6);
-		
 		return 0;
 		
 	}
@@ -394,6 +395,32 @@ static int c_main(int argc, char **argv, char **envp)
 
 		return 0;
 	}
+
+	// --setver
+	if (!memcmp(&argv1[1], "-setver", sizeof("-setver"))) {
+		int ksuver_override;
+
+		if (!argv2)
+			ksuver_override = 0;
+		else {
+			if (!!argv2[5])
+				goto fail;
+		
+			ksuver_override = dumb_atoi(argv2);
+			if (!ksuver_override)
+				goto fail;
+		}
+
+		ksu_sys_reboot(CHANGE_KSUVER, ksuver_override, (long)argv1);
+
+		if (*(uintptr_t *)argv1 != (uintptr_t)argv1 )
+			goto fail;
+
+		print_out(ok, sizeof(ok));
+		return 0;
+	}
+
+
 show_usage:
 	print_err(usage, sizeof(usage) -1 );
 	return 1;
