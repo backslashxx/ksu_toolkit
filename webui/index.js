@@ -84,9 +84,11 @@ function setupUidPageListener() {
     crownBtn.onclick = () => {
         document.querySelectorAll('md-radio').forEach(radio => {
             if (!radio.checked) return;
+            exec("am start -a android.intent.action.MAIN -c android.intent.category.HOME").catch(() => { });
             uidModule.saveManager(saveSwitch.selected ? radio.value : null);
             uidModule.setManager(radio.value, radio.id);
             crownBtn.classList.remove('show');
+            document.getElementById('exit-btn').click();
         });
     }
 }
