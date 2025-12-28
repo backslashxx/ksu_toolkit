@@ -112,9 +112,8 @@ static int sys_ioctl(unsigned long fd, unsigned long cmd, unsigned long arg)
 /*
  *  dumb_atoi - 5 digits only!
  *
- *
  */
-__attribute__((always_inline))
+__attribute__((noinline))
 static int dumb_atoi(const char *str)
 {
 	int uid = 0;
