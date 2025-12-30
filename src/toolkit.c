@@ -424,7 +424,7 @@ static int c_main(long argc, char **argv, char **envp)
 	}
 
 	// --spoof-uname
-	if (!memcmp(&argv1[1], "-spoof-uname", sizeof("-spoof-uname"))) {
+	if (!memcmp(&argv1[6], "f-uname", sizeof("f-uname"))) {
 		if (!argv2 || (int)__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, CHANGE_SPOOF_UNAME, 0, (long)argv2, NONE, NONE) != 0)
 			goto fail;
 
