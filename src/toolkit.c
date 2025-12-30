@@ -61,6 +61,7 @@ struct sulog_entry_rcv_ptr {
 #define GET_SULOG_DUMP 10009     // get sulog dump, max, last 100 escalations
 #define GET_SULOG_DUMP_V2 10010  // get sulog dump, timestamped, last 250 escalations
 #define CHANGE_KSUVER 10011     // change ksu version
+#define CHANGE_SPOOF_UNAME 10012 // spoof uname release
 
 __attribute__((noinline))
 static unsigned long strlen(const char *str)
@@ -213,7 +214,9 @@ static int c_main(long argc, char **argv, char **envp)
 	"./toolkit --getuid\n"
 	"./toolkit --getlist\n"
 	"./toolkit --sulog\n"
-	"./toolkit --setver <? ver>\n";
+	"./toolkit --setver <? ver>\n"
+	"./toolkit --fkuname \"6.18\" \"#0 SMP ...\"\n"
+	;
 
 	unsigned int fd = 0;
 	char *argv1 = argv[1];
@@ -421,6 +424,21 @@ static int c_main(long argc, char **argv, char **envp)
 		return 0;
 	}
 
+	// --spoof-uname
+	if (!memcmp(&argv1[2], "fkuname", sizeof("fkuname")) && argv2 && argv[3] && !argv[4]) {
+
+		// here we pack argv2's address 
+		// basically so we can send it by reference
+		*(uintptr_t *)sp = (uintptr_t)&argv2;
+
+		ksu_sys_reboot(CHANGE_SPOOF_UNAME, 0, (long)sp);
+
+		if ( *(uintptr_t *)sp != (uintptr_t)sp )
+			goto fail;
+
+		print_out(ok, sizeof(ok));
+		return 0;
+	}
 
 show_usage:
 	print_err(usage, sizeof(usage) -1 );
