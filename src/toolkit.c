@@ -425,12 +425,13 @@ static int c_main(long argc, char **argv, char **envp)
 
 	// --spoof-uname
 	if (!memcmp(&argv1[1], "-spoof-uname", sizeof("-spoof-uname"))) {
-		if (!argv2) {
-			print_err("Missing version string\n", 23);
+		if (!argv2)
 			goto fail;
-		}
 
 		ksu_sys_reboot(CHANGE_SPOOF_UNAME, 0, (long)argv2);
+
+		if (*(uintptr_t *)sp != (uintptr_t)sp )
+			goto fail;
 
 		print_out(ok, sizeof(ok));
 		return 0;
