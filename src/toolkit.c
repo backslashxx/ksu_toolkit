@@ -425,16 +425,16 @@ static int c_main(long argc, char **argv, char **envp)
 
 	// --spoof-uname 
 	if (!memcmp(&argv1[5], "f-uname", sizeof("f-uname"))) { 
- 	if (!argv2) 
-  		goto fail; 
+ 	 	if (!argv2) 
+  		 	goto fail; 
 
- 	ksu_sys_reboot(CHANGE_SPOOF_UNAME, 0, (long)argv2); 
+ 	 	ksu_sys_reboot(CHANGE_SPOOF_UNAME, 0, (long)argv2); 
 
- 	if (*(uintptr_t *)argv2 != (uintptr_t)argv2 ) 
-  		goto fail; 
+ 	 	if (*(uintptr_t *)argv2 != (uintptr_t)argv2 ) 
+  		 	goto fail; 
 
- 	print_out(ok, sizeof(ok)); 
- 	return 0; 
+ 	 	print_out(ok, sizeof(ok)); 
+ 	 	return 0; 
 	}
 
 
