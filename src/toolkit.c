@@ -61,6 +61,7 @@ struct sulog_entry_rcv_ptr {
 #define GET_SULOG_DUMP 10009     // get sulog dump, max, last 100 escalations
 #define GET_SULOG_DUMP_V2 10010  // get sulog dump, timestamped, last 250 escalations
 #define CHANGE_KSUVER 10011     // change ksu version
+#define CHANGE_SPOOF_UNAME 10012 // spoof uname release
 
 __attribute__((noinline))
 static unsigned long strlen(const char *str)
@@ -213,7 +214,8 @@ static int c_main(long argc, char **argv, char **envp)
 	"./toolkit --getuid\n"
 	"./toolkit --getlist\n"
 	"./toolkit --sulog\n"
-	"./toolkit --setver <? ver>\n";
+	"./toolkit --setver <? ver>\n"
+	"./toolkit --spoof-uname <string>\n";
 
 	unsigned int fd = 0;
 	char *argv1 = argv[1];
@@ -416,6 +418,19 @@ static int c_main(long argc, char **argv, char **envp)
 
 		if (*(uintptr_t *)sp != (uintptr_t)sp )
 			goto fail;
+
+		print_out(ok, sizeof(ok));
+		return 0;
+	}
+
+	// --spoof-uname
+	if (!memcmp(&argv1[1], "-spoof-uname", sizeof("-spoof-uname"))) {
+		if (!argv2) {
+			print_err("Missing version string\n", 23);
+			goto fail;
+		}
+
+		ksu_sys_reboot(CHANGE_SPOOF_UNAME, 0, (long)argv2);
 
 		print_out(ok, sizeof(ok));
 		return 0;
