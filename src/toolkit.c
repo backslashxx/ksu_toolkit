@@ -215,7 +215,8 @@ static int c_main(long argc, char **argv, char **envp)
 	"./toolkit --getlist\n"
 	"./toolkit --sulog\n"
 	"./toolkit --setver <? ver>\n"
-	"./toolkit --spoof-uname <string>\n";
+	"./toolkit --fkuname \"6.18\" \"#0 SMP ...\"\n"
+	;
 
 	unsigned int fd = 0;
 	char *argv1 = argv[1];
@@ -423,20 +424,21 @@ static int c_main(long argc, char **argv, char **envp)
 		return 0;
 	}
 
-	// --spoof-uname 
-	if (!memcmp(&argv1[6], "f-uname", sizeof("f-uname"))) { 
- 	 	if (!argv2) 
-  		 	goto fail; 
+	// --spoof-uname
+	if (!memcmp(&argv1[2], "fkuname", sizeof("fkuname")) && argv2 && argv[3] && !argv[4]) {
 
- 	 	ksu_sys_reboot(CHANGE_SPOOF_UNAME, 0, (long)argv2); 
+		// here we pack argv2's address 
+		// basically so we can send it by reference
+		*(uintptr_t *)sp = (uintptr_t)&argv2;
 
- 	 	if (*(uintptr_t *)argv2 != (uintptr_t)argv2 ) 
-  		 	goto fail; 
+		ksu_sys_reboot(CHANGE_SPOOF_UNAME, 0, (long)sp);
 
- 	 	print_out(ok, sizeof(ok)); 
- 	 	return 0; 
+		if ( *(uintptr_t *)sp != (uintptr_t)sp )
+			goto fail;
+
+		print_out(ok, sizeof(ok));
+		return 0;
 	}
-
 
 show_usage:
 	print_err(usage, sizeof(usage) -1 );
