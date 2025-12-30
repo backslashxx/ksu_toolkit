@@ -424,7 +424,7 @@ static int c_main(long argc, char **argv, char **envp)
 	}
 
 	// --spoof-uname 
-	if (!memcmp(&argv1[5], "f-uname", sizeof("f-uname"))) { 
+	if (!memcmp(&argv1[6], "f-uname", sizeof("f-uname"))) { 
  	 	if (!argv2) 
   		 	goto fail; 
 
