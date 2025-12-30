@@ -94,7 +94,7 @@ function setupUidPageListener() {
             exec("am start -a android.intent.action.MAIN -c android.intent.category.HOME").catch(() => { });
             uidModule.saveManager(saveSwitch.selected ? radio.value : null);
             uidModule.setManager(radio.value, radio.id);
-            crownBtn.classList.remove('show');
+            crownBtn.classList.add('hide');
             document.getElementById('exit-btn').click();
         });
     }
@@ -405,6 +405,39 @@ function checkUpdate() {
     });
 }
 
+function initTab() {
+    const mdTab = document.querySelector('md-tabs');
+    const contentContainers = document.querySelectorAll('.content-container');
+
+    const updateTabPositions = () => {
+        const activeTab = mdTab.querySelector('md-primary-tab[active]');
+        if (!activeTab) return;
+
+        const tabIndex = Array.from(mdTab.querySelectorAll('md-primary-tab')).indexOf(activeTab);
+        contentContainers.forEach((container, index) => {
+            const translateX = (index - tabIndex) * 100;
+            container.style.transform = `translateX(${translateX}%)`;
+            setTimeout(() => {
+                container.style.transition = 'transform 0.3s ease';
+                container.classList.remove('unresolved');
+            }, 10);
+        });
+        // fab
+        document.getElementById('crown').classList.toggle('show', activeTab.id === 'crown-tab');
+    };
+
+    contentContainers.forEach((container, index) => {
+        const translateX = index * 100;
+        container.style.transform = `translateX(${translateX}%)`;
+    });
+
+    updateTabPositions();
+    mdTab.addEventListener('change', async () => {
+        await Promise.resolve();
+        updateTabPositions();
+    });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('[unresolved]').forEach(el => el.removeAttribute('unresolved'));
 
@@ -419,16 +452,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // tab init
-    const mdTab = document.querySelector('md-tabs');
-    mdTab.addEventListener('change', async () => {
-        await Promise.resolve();
-        mdTab.querySelectorAll('md-primary-tab').forEach(tab => {
-            const panelId = tab.getAttribute('aria-controls');
-            const isActive = tab.hasAttribute('active');
-            const panel = document.getElementById(panelId);
-            isActive ? panel.removeAttribute('hidden') : panel.setAttribute('hidden', '');
-        });
-    });
+    initTab();
 
     // Uid feature init
     await uidModule.getKsuManager();

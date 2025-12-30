@@ -29,73 +29,71 @@
                 <md-primary-tab id="sulog-tab" aria-controls="content-sulog">SU log</md-primary-tab>
             </md-tabs>
         </div>
-        <!-- Crown -->
-        <div class="content-container" id="content-crown" role="tabpanel" aria-labelledby="crown-tab">
-            <div class="switch-item">
-                <label for="save">Set manager on boot</label>
-                <md-switch id="save" disabled></md-switch>
+        <div class="horizontal-pager">
+            <!-- Crown -->
+            <div class="content-container" id="content-crown" role="tabpanel" aria-labelledby="crown-tab">
+                <div class="switch-item content">
+                    <label for="save">Set manager on boot</label>
+                    <md-switch id="save" disabled></md-switch>
+                </div>
+                <div class="text-field-with-button content" id="ksu-version">
+                    <md-outlined-text-field label="set ksu version"></md-outlined-text-field>
+                    <md-filled-icon-button class="text-field-button">
+                        <md-icon>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>
+                        </md-icon>
+                    </md-filled-icon-button>
+                </div>
+                <div class="list content" id="manager-list">
+                    <!-- list of manager -->
+                </div>
+                <div class="inactive-banner active" id="manager-loading">Loading...</div>
+                <div class="inactive-banner" id="manager-empty">No other KernelSU manager found</div>
+                <div class="inactive-banner" id="crown-unsupported">This feature is not available</div>
             </div>
-            <div class="text-field-with-button" id="ksu-version">
-                <md-outlined-text-field label="set ksu version"></md-outlined-text-field>
-                <md-filled-icon-button class="text-field-button">
-                    <md-icon>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>
-                    </md-icon>
-                </md-filled-icon-button>
-            </div>
-            <div class="list" id="manager-list">
-                <!-- list of manager -->
-            </div>
-            <div class="safe-bottom-padding"></div>
-            <div class="inactive-banner active" id="manager-loading">Loading...</div>
-            <div class="inactive-banner" id="manager-empty">No other KernelSU manager found</div>
-            <div class="inactive-banner" id="crown-unsupported">This feature is not available</div>
-
             <md-fab variant="primary" label="Crown" id="crown">
                 <md-icon slot="icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M200-160v-80h560v80H200Zm0-140-51-321q-2 0-4.5.5t-4.5.5q-25 0-42.5-17.5T80-680q0-25 17.5-42.5T140-740q25 0 42.5 17.5T200-680q0 7-1.5 13t-3.5 11l125 56 125-171q-11-8-18-21t-7-28q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820q0 15-7 28t-18 21l125 171 125-56q-2-5-3.5-11t-1.5-13q0-25 17.5-42.5T820-740q25 0 42.5 17.5T880-680q0 25-17.5 42.5T820-620q-2 0-4.5-.5t-4.5-.5l-51 321H200Zm68-80h424l26-167-105 46-133-183-133 183-105-46 26 167Zm212 0Z"/></svg>
                 </md-icon>
             </md-fab>
-        </div>
-        <!-- Umount -->
-        <div class="content-container" id="content-umount" role="tabpanel" aria-labelledby="umount-tab" hidden>
-            <div class="switch-item">
-                <label for="kernel-umount">Kernel umount</label>
-                <md-switch id="kernel-umount" disabled></md-switch>
+            <!-- Umount -->
+            <div class="content-container unresolved" id="content-umount" role="tabpanel" aria-labelledby="umount-tab">
+                <div class="switch-item content">
+                    <label for="kernel-umount">Kernel umount</label>
+                    <md-switch id="kernel-umount" disabled></md-switch>
+                </div>
+                <div class="text-field-with-button content" id="mount-entry-search" hidden>
+                    <md-outlined-text-field label="mount point"></md-outlined-text-field>
+                    <md-filled-icon-button class="text-field-button">
+                        <md-icon>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+                        </md-icon>
+                    </md-filled-icon-button>
+                    <md-menu anchor-corner="start-start" menu-corner="end-start"></md-menu>
+                </div>
+                <div class="list content" id="umount-list">
+                    <!-- list of umount entry -->
+                </div>
+                <div class="inactive-banner" id="umount-unsupported">This feature is not available</div>
+                <div class="inactive-banner" id="umount-empty">No umount entry added yet</div>
+                <div class="inactive-banner" id="rezygisk">This feature is managed by ReZygisk</div>
             </div>
-            <div class="text-field-with-button" id="mount-entry-search" hidden>
-                <md-outlined-text-field label="mount point"></md-outlined-text-field>
-                <md-filled-icon-button class="text-field-button">
-                    <md-icon>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
-                    </md-icon>
-                </md-filled-icon-button>
-                <md-menu anchor-corner="start-start" menu-corner="end-start"></md-menu>
+            <!-- sulog -->
+            <div class="content-container unresolved" id="content-sulog" role="tabpanel" aria-labelledby="sulog-tab">
+                <md-chip-set class="content">
+                    <md-filter-chip id="filter-all" label="All"></md-filter-chip>
+                    <md-filter-chip id="filter-access" label="access"></md-filter-chip>
+                    <md-filter-chip id="filter-stat" label="stat"></md-filter-chip>
+                    <md-filter-chip id="filter-exec" label="exec"></md-filter-chip>
+                    <md-filter-chip id="filter-ioctl" label="ioctl"></md-filter-chip>
+                    <md-filter-chip id="filter-exclude-manager" label="Exclude Manager" selected></md-filter-chip>
+                </md-chip-set>
+                <div class="list content" id="sulog-list">
+                    <!-- list of SU log -->
+                </div>
+                <div class="inactive-banner active" id="sulist-loading">Loading...</div>
+                <div class="inactive-banner" id="sulog-unsupported">This feature is not available</div>
             </div>
-            <div class="list" id="umount-list">
-                <!-- list of umount entry -->
-            </div>
-            <div class="safe-bottom-padding"></div>
-            <div class="inactive-banner" id="umount-unsupported">This feature is not available</div>
-            <div class="inactive-banner" id="umount-empty">No umount entry added yet</div>
-            <div class="inactive-banner" id="rezygisk">This feature is managed by ReZygisk</div>
-        </div>
-        <!-- sulog -->
-        <div class="content-container" id="content-sulog" role="tabpanel" aria-labelledby="sulog-tab" hidden>
-            <md-chip-set>
-                <md-filter-chip id="filter-all" label="All"></md-filter-chip>
-                <md-filter-chip id="filter-access" label="access"></md-filter-chip>
-                <md-filter-chip id="filter-stat" label="stat"></md-filter-chip>
-                <md-filter-chip id="filter-exec" label="exec"></md-filter-chip>
-                <md-filter-chip id="filter-ioctl" label="ioctl"></md-filter-chip>
-                <md-filter-chip id="filter-exclude-manager" label="Exclude Manager" selected></md-filter-chip>
-            </md-chip-set>
-            <div class="list" id="sulog-list">
-                <!-- list of SU log -->
-            </div>
-            <div class="safe-bottom-padding"></div>
-            <div class="inactive-banner active" id="sulist-loading">Loading...</div>
-            <div class="inactive-banner" id="sulog-unsupported">This feature is not available</div>
         </div>
     </div>
 </body>

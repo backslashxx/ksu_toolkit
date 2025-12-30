@@ -11,12 +11,9 @@ body {
 
 .root_layout {
     width: 100%;
-    max-width: 768px;
     min-height: calc(100vh - var(--top-inset) - var(--bottom-inset));
     display: flex;
     flex-direction: column;
-    align-items: center;
-    margin: 0 auto;
 }
 
 .header {
@@ -61,10 +58,36 @@ md-tabs {
     width: 100%
 }
 
-.content-container {
+.horizontal-pager {
+    position: relative;
     width: 100%;
-    max-width: calc(100vw - 32px);
-    margin-top: 128px;
+    margin-top: 114px;
+    height: calc(100vh - 114px - var(--top-inset));
+    overflow: hidden;
+}
+
+.content-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    padding-top: 16px;
+    padding-bottom: calc(var(--bottom-inset) + 64px);
+    box-sizing: border-box;
+}
+
+.content-container.unresolved {
+    opacity: 0;
+}
+
+.content {
+    width: 100%;
+    max-width: min(768px, calc(100% - 32px));
 }
 
 .switch-item {
@@ -154,7 +177,7 @@ label {
 .text-field-with-button {
     width: 100%;
     display: flex;
-    margin: 16px 0;
+    margin-top: 16px;
     gap: 8px;
     position: relative;
 }
@@ -284,8 +307,8 @@ label {
     color: var(--md-sys-color-outline);
     position: fixed;
     left: 0;
-    top: 50vh;
-    width: 100vw;
+    top: 50%;
+    width: 100%;
     user-select: none;
 }
 
@@ -299,9 +322,10 @@ md-radio {
 }
 
 md-fab {
-    position: fixed;
+    position: absolute;
     right: 16px;
     bottom: calc(var(--bottom-inset) + 16px);
+    z-index: 10;
 }
 
 md-outlined-text-field {
@@ -328,9 +352,10 @@ md-menu-item {
     transform: scale(1);
 }
 
-.safe-bottom-padding {
-    width: 100%;
-    height: calc(var(--bottom-inset) + 64px);
+#crown.hide {
+    transform: scale(0);
+    pointer-events: none;
+    opacity: 0;
 }
 
 [slot="headline"] {
