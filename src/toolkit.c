@@ -423,13 +423,18 @@ static int c_main(long argc, char **argv, char **envp)
 		return 0;
 	}
 
-	// --spoof-uname
-	if (!memcmp(&argv1[6], "f-uname", sizeof("f-uname"))) {
-		if (!argv2 || (int)__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, CHANGE_SPOOF_UNAME, 0, (long)argv2, NONE, NONE) != 0)
-			goto fail;
+	// --spoof-uname 
+	if (!memcmp(&argv1[5], "f-uname", sizeof("f-uname"))) { 
+ 	if (!argv2) 
+  		goto fail; 
 
-		print_out(ok, sizeof(ok));
-		return 0;
+ 	ksu_sys_reboot(CHANGE_SPOOF_UNAME, 0, (long)argv2); 
+
+ 	if (*(uintptr_t *)argv2 != (uintptr_t)argv2 ) 
+  		goto fail; 
+
+ 	print_out(ok, sizeof(ok)); 
+ 	return 0; 
 	}
 
 
