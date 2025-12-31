@@ -175,6 +175,7 @@ label {
 }
 
 .text-field-with-button {
+    border-radius: 25px;
     width: 100%;
     display: flex;
     margin-top: 16px;
@@ -314,6 +315,39 @@ label {
 
 .inactive-banner.active {
     display: block;
+}
+
+.card-group {
+    display: flex;
+    flex-direction: column;
+    width: 80%;
+    border: 1px solid var(--md-sys-color-outline-variant, #ccc);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    background-color: var(--md-sys-color-surface-container-low, rgba(255, 255, 255, 0.05));
+}
+
+.card-title {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 5px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface, inherit);
+    opacity: 0.9;
+}
+
+.card-version {
+    opacity: 0.8;
+    font-size: 1rem;
+    margin-left: 10px;
+    margin-top: 5px;
+    margin-bottom: 0;
+}
+
+.card-group .text-field-with-button {
+    max-width: 100%;
 }
 
 md-radio {

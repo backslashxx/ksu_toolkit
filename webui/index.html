@@ -27,6 +27,7 @@
                 <md-primary-tab id="crown-tab" aria-controls="content-crown" active>Crown</md-primary-tab>
                 <md-primary-tab id="umount-tab" aria-controls="content-umount">Umount</md-primary-tab>
                 <md-primary-tab id="sulog-tab" aria-controls="content-sulog">SU log</md-primary-tab>
+                <md-primary-tab id="spoof-tab" aria-controls="content-spoof">Spoofing</md-primary-tab>
             </md-tabs>
         </div>
         <div class="horizontal-pager">
@@ -35,14 +36,6 @@
                 <div class="switch-item content">
                     <label for="save">Set manager on boot</label>
                     <md-switch id="save" disabled></md-switch>
-                </div>
-                <div class="text-field-with-button content" id="ksu-version">
-                    <md-outlined-text-field label="set ksu version"></md-outlined-text-field>
-                    <md-filled-icon-button class="text-field-button">
-                        <md-icon>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>
-                        </md-icon>
-                    </md-filled-icon-button>
                 </div>
                 <div class="list content" id="manager-list">
                     <!-- list of manager -->
@@ -93,6 +86,70 @@
                 </div>
                 <div class="inactive-banner active" id="sulist-loading">Loading...</div>
                 <div class="inactive-banner" id="sulog-unsupported">This feature is not available</div>
+            </div>
+            <!-- spoofing -->
+            <div class="content-container unresolved" id="content-spoof" role="tabpanel" aria-labelledby="spoof-tab">
+                <!-- KSU Version -->
+                <div class="card-group">
+                    <h3 class="card-title">KernelSU Version</h3>
+                    <span id="current-ksu-version" class="card-version">Loading...</span>
+                    <div class="text-field-with-button content" id="ksu-version">
+                        <md-outlined-text-field label="Set KernelSU Version (e.g. 43250)"></md-outlined-text-field>
+                        <md-filled-icon-button class="text-field-button" id="spoof-ksuver-done">
+                            <md-icon>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>
+                            </md-icon>
+                        </md-filled-icon-button>
+                        <md-filled-icon-button class="text-field-button" id="spoof-ksuver-undo">
+                            <md-icon>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M280-120v-80h248q100 0 170-70t70-170q0-100-70-170t-170-70H272l96 96-56 56-192-192 192-192 56 56-96 96h256q134 0 227 93t93 227q0 134-93 227t-227 93H280Z"/></svg>
+                            </md-icon>
+                        </md-filled-icon-button>
+                    </div>
+                </div>
+                <!-- fk-uname -->
+                <div class="card-group">
+                    <h3 class="card-title">Kernel Uname</h3>
+
+                    <div id="uname-display-box" class="card-version">
+                        Loading kernel info...
+                    </div>
+
+                    <div class="text-field-with-button content">
+                        <md-outlined-text-field
+                            id="input-release"
+                            label="Set Kernel Release (e.g. 5.10.101-android)"
+                            style="width: 100%;">
+                        </md-outlined-text-field>
+                        <md-filled-icon-button class="text-field-button" id="input-release-done">
+                            <md-icon>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>
+                            </md-icon>
+                        </md-filled-icon-button>
+                        <md-filled-icon-button class="text-field-button" id="input-release-undo">
+                            <md-icon>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M280-120v-80h248q100 0 170-70t70-170q0-100-70-170t-170-70H272l96 96-56 56-192-192 192-192 56 56-96 96h256q134 0 227 93t93 227q0 134-93 227t-227 93H280Z"/></svg>
+                            </md-icon>
+                        </md-filled-icon-button>
+                    </div>
+                    <div class="text-field-with-button content">
+                        <md-outlined-text-field
+                            id="input-version"
+                            label="Set Kernel Build (e.g. #1 SMP PREEMPT...)"
+                            style="width: 100%;">
+                        </md-outlined-text-field>
+                        <md-filled-icon-button class="text-field-button" id="input-version-done">
+                            <md-icon>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>
+                            </md-icon>
+                        </md-filled-icon-button>
+                        <md-filled-icon-button class="text-field-button" id="input-version-undo">
+                            <md-icon>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M280-120v-80h248q100 0 170-70t70-170q0-100-70-170t-170-70H272l96 96-56 56-192-192 192-192 56 56-96 96h256q134 0 227 93t93 227q0 134-93 227t-227 93H280Z"/></svg>
+                            </md-icon>
+                        </md-filled-icon-button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
