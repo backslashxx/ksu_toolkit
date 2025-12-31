@@ -1,10 +1,33 @@
 import { exec, toast } from 'kernelsu-alt';
 import { modDir, bin, ksud } from './index.js';
 
+// small helper to make an element visible when focused
+const makeVisibleOnFocus = (id) => {
+    const el = document.getElementById(id);
+    const container = document.getElementById('content-spoof');
+    if (!el || !container) return;
+
+    const onFocus = () => {
+        container.style.transition = 'padding-bottom 0.1s ease';
+        container.style.paddingBottom = '45vh';
+
+        setTimeout(() => {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+    };
+
+    const onBlur = () => {
+        container.style.paddingBottom = '0';
+    };
+
+    el.addEventListener('focus', onFocus);
+    el.addEventListener('blur', onBlur);
+};
+
 // KernelSU Version
 function setupKsuVersionLogic() {
     const display = document.getElementById('current-ksu-version');
-    const input = document.querySelector('#ksu-version md-outlined-text-field');
+    const input = document.getElementById('input-ksuver');
     const btnDone = document.getElementById('spoof-ksuver-done');
     const btnUndo = document.getElementById('spoof-ksuver-undo');
 
@@ -55,13 +78,13 @@ function setupUnameLogic() {
     const inputRelease = document.getElementById('input-release');
     const inputVersion = document.getElementById('input-version');
 
-    // Release buttons
-    const btnReleaseDone = document.getElementById('input-release-done');
-    const btnReleaseUndo = document.getElementById('input-release-undo');
+    // Make inputs visible on focus
+    makeVisibleOnFocus('input-release');
+    makeVisibleOnFocus('input-version');
 
-    // Build buttons
-    const btnVersionDone = document.getElementById('input-version-done');
-    const btnVersionUndo = document.getElementById('input-version-undo');
+    // Buttons
+    const btnDone = document.getElementById('fk-uname-done');
+    const btnUndo = document.getElementById('fk-uname-undo');
 
     let realRelease = "";
     let realVersion = "";
@@ -73,8 +96,8 @@ function setupUnameLogic() {
                 realRelease = lines[0];
                 realVersion = lines[1];
                 displayBox.innerHTML = `
-                    <div style="font-size: 0.9em;"><b>R:</b> ${realRelease}</div>
-                    <div style="font-size: 0.9em; opacity: 0.8; margin-top: 4px;"><b>B:</b> ${realVersion}</div>
+                    <div style="font-size: 0.9em;"><b>Release:</b> ${realRelease}</div>
+                    <div style="font-size: 0.9em; opacity: 0.8; margin-top: 4px;"><b>Build:</b> ${realVersion}</div>
                 `;
             }
         });
@@ -111,11 +134,8 @@ function setupUnameLogic() {
     };
 
     // We connected the buttons
-    if (btnReleaseDone) btnReleaseDone.onclick = applySpoof;
-    if (btnVersionDone) btnVersionDone.onclick = applySpoof;
-
-    if (btnReleaseUndo) btnReleaseUndo.onclick = resetSpoof;
-    if (btnVersionUndo) btnVersionUndo.onclick = resetSpoof;
+    if (btnDone) btnDone.onclick = applySpoof;
+    if (btnUndo) btnUndo.onclick = resetSpoof;
 
     updateDisplay(); // load at init
 }

@@ -320,11 +320,11 @@ label {
 .card-group {
     display: flex;
     flex-direction: column;
-    width: 80%;
+    width: 85%;
     border: 1px solid var(--md-sys-color-outline-variant, #ccc);
     border-radius: 12px;
     padding: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 15px;
     background-color: var(--md-sys-color-surface-container-low, rgba(255, 255, 255, 0.05));
 }
 
@@ -347,7 +347,18 @@ label {
 }
 
 .card-group .text-field-with-button {
+    width: 100%;
     max-width: 100%;
+    margin-bottom: 5px;
+}
+
+.card-group .text-field-button {
+    width: 100% !important;
+    max-width: 100%;
+    position: relative !important;
+    bottom: 0;
+    right: 0;
+    margin-top: 5px;
 }
 
 md-radio {
