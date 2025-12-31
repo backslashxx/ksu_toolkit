@@ -429,7 +429,8 @@ static int c_main(long argc, char **argv, char **envp)
 
 		// here we pack argv2's address 
 		// basically so we can send it by reference
-		*(uintptr_t *)sp = (uintptr_t)&argv2;
+		// while forcing a 64 bit width
+		*(uint64_t *)sp = (uintptr_t)&argv2;
 
 		ksu_sys_reboot(CHANGE_SPOOF_UNAME, 0, (long)sp);
 
