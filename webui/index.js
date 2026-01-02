@@ -17,6 +17,7 @@ import '@material/web/textfield/outlined-text-field.js';
 import * as uidModule from './uid.js';
 import * as umountModule from './umount.js';
 import * as sulogModule from './sulog.js';
+import * as spoofModule from './spoof.js';
 
 export const modDir = '/data/adb/modules/ksu_toolkit';
 export const bin = 'toolkit';
@@ -62,9 +63,6 @@ function appendManagerList() {
 function setupUidPageListener() {
     const saveSwitch = document.getElementById('save');
     const crownBtn = document.getElementById('crown');
-    const ksuVersion = document.getElementById('ksu-version');
-    const versionTextField = ksuVersion.querySelector('md-outlined-text-field');
-    const setVersionBtn = ksuVersion.querySelector('.text-field-button');
 
     if (uidModule.manager.length === 0) {
         saveSwitch.selected = false;
@@ -96,24 +94,6 @@ function setupUidPageListener() {
             uidModule.setManager(radio.value, radio.id);
             crownBtn.classList.add('hide');
             document.getElementById('exit-btn').click();
-        });
-    }
-
-    let executing = false;
-    setVersionBtn.onclick = () => {
-        if (executing) return;
-        executing = true;
-        exec(`
-            targetVersion=${versionTextField.value.trim()}
-            if [ -s "${uidFile}" ]; then
-                [ -z $targetVersion ] && rm -rf ${versionFile} || echo $targetVersion > ${versionFile}
-            fi
-            ${bin} --setver ${versionTextField.value}
-            `,{ env: { PATH: `$PATH:${modDir}` }}
-        ).then((result) => {
-            versionTextField.value = '';
-            executing = false;
-            toast(result.stdout.trim() !== '' ? result.stdout : result.stderr);
         });
     }
 }
@@ -469,6 +449,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // SU log feature init
     await sulogModule.getAppList();
     checkSuLogFeature();
+
+    // spoofing feature init
+    spoofModule.initSpoofing();
 
     checkUpdate();
 });
