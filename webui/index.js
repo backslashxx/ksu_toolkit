@@ -87,7 +87,6 @@ function setupUidPageListener() {
         }
     });
 
-    crownBtn.classList.add('show');
     crownBtn.onclick = () => {
         document.querySelectorAll('md-radio').forEach(radio => {
             if (!radio.checked) return;
