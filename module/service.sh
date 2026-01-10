@@ -13,7 +13,7 @@ echo "VERSION=$(uname -v)" >> "$MODDIR/default_uname"
 
 if [ -f "$KSUDIR/.uname" ] && grep -qE "RELEASE=|VERSION=" "$KSUDIR/.uname"; then
 	. "$KSUDIR/.uname"
-	"$MODDIR/toolkit" --fkuname $RELEASE $VERSION > /dev/null 2>&1
+	"$MODDIR/toolkit" --fkuname "$RELEASE" "$VERSION" > /dev/null 2>&1
 fi
 
 if [ -f "$KSUDIR/.manager_uid" ]; then
