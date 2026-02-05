@@ -53,11 +53,23 @@ jobs:
           mkdir -p ../module/bin
           mv toolkit-* ../module/bin
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 'latest'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+          cache: 'pnpm'
+          cache-dependency-path: webui/pnpm-lock.yaml
+
       - name: Build WebUI
         run: |
           cd webui
-          npm ci
-          npm run build
+          pnpm install --frozen-lockfile
+          pnpm run build
 
       - name: Update version code
         run: sed -i 's/^versionCode=.*/versionCode=${{ github.run_number }}/' module/module.prop
