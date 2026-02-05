@@ -24,20 +24,6 @@ struct ksu_add_try_umount_cmd {
 #define KSU_INSTALL_MAGIC1 0xDEADBEEF
 #define KSU_INSTALL_MAGIC2 0xCAFEBABE
 
-// sulog v1
-struct sulogv1_entry {
-	uint8_t symbol;
-	uint32_t uid; // mebbe u16?
-} __attribute__((packed));
-
-struct sulogv1_entry_rcv_ptr {
-	uint64_t int_ptr; // send index here
-	uint64_t buf_ptr; // send buf here
-};
-
-#define SULOGV1_ENTRY_MAX 100
-#define SULOGV1_BUFSIZ SULOGV1_ENTRY_MAX * (sizeof (struct sulogv1_entry))
-
 // sulog v2, timestamped version, 250 entries, 8 bytes per entry
 struct sulog_entry {
 	uint32_t s_time; // uptime in seconds
@@ -58,7 +44,7 @@ struct sulog_entry_rcv_ptr {
 #define CHANGE_MANAGER_UID 10006
 #define KSU_UMOUNT_GETSIZE 107   // get list size // shit is u8 we cant fit 10k+ on it
 #define KSU_UMOUNT_GETLIST 108   // get list
-#define GET_SULOG_DUMP 10009     // get sulog dump, max, last 100 escalations
+#define GET_SULOG_DUMP 10009     // deprecated
 #define GET_SULOG_DUMP_V2 10010  // get sulog dump, timestamped, last 250 escalations
 #define CHANGE_KSUVER 10011     // change ksu version
 #define CHANGE_SPOOF_UNAME 10012 // spoof uname release
@@ -163,45 +149,6 @@ start:
 		goto start;
 
 	return;
-}
-
-__attribute__((always_inline, deprecated))
-static inline int sulogv1(char *sulog_buf)
-{
-	uint32_t sulog_index_next;
-	char t[] = "sym: ? uid: ??????\n";
-	char *sulogv1_buf = sulog_buf;
-
-	struct sulogv1_entry_rcv_ptr sbuf = {0};
-	sbuf.int_ptr = (uint64_t)&sulog_index_next;
-	sbuf.buf_ptr = (uint64_t)sulogv1_buf;
-
-	ksu_sys_reboot(GET_SULOG_DUMP, 0, (long)&sbuf);
-	
-	// sulog_index_next is the oldest entry!
-	// and sulog_index_next -1 is the newest entry
-	// we start listing from the oldest entry
-	int start = sulog_index_next;
-
-	int i = 0;
-	int idx;
-
-sulogv1_loop_start:
-	idx = (start + i) % SULOGV1_ENTRY_MAX; // modulus due to this overflowing entry_max
-	struct sulogv1_entry *entry_ptr = (struct sulogv1_entry *)(sulogv1_buf + idx * sizeof(struct sulogv1_entry) );
-
-	if (entry_ptr->symbol) {
-		t[5] = entry_ptr->symbol;
-		long_to_str(entry_ptr->uid, 6, &t[12]);
-		print_out(t, sizeof(t) - 1 );
-	}
-
-	i++;
-
-	if (i < SULOGV1_ENTRY_MAX)
-		goto sulogv1_loop_start;
-
-	return 0;
 }
 
 __attribute__((always_inline))
@@ -368,7 +315,7 @@ static int c_main(long argc, char **argv, char **envp)
 		ksu_sys_reboot(GET_SULOG_DUMP_V2, 0, (long)&sbuf);
 
 		if (*(uintptr_t *)&sbuf != (uintptr_t)&sbuf)
-			return sulogv1(sulog_buf); // attempt v1
+			goto fail;
 
 		// sulog_index_next is the oldest entry!
 		// and sulog_index_next -1 is the newest entry
