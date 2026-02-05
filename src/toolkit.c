@@ -165,7 +165,7 @@ start:
 	return;
 }
 
-__attribute__((always_inline))
+__attribute__((always_inline, deprecated))
 static inline int sulogv1(char *sulog_buf)
 {
 	uint32_t sulog_index_next;
