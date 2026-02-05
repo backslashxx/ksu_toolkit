@@ -1,0 +1,40 @@
+name: tests
+
+on:
+  push:
+    branches: master
+    paths-ignore: 
+      - '**.md'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: compile and test
+        run: |
+          echo "tests"
+          pwd
+
+          cd src
+          clang -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start -fsanitize=address -fsanitize=undefined toolkit.c -o toolkit
+          
+          ./toolkit || true
+          
+          ./toolkit --setuid 12345 || true
+          
+          ./toolkit --getuid || true
+          
+          ./toolkit --getlist || true
+          
+          ./toolkit --sulog || true
+          
+          ./toolkit --setver || true
+          
+          ./toolkit --fkuname default default || true
+          
+
+
