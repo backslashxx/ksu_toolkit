@@ -3,8 +3,8 @@
 - for testing and debugging purposes.
 
 Requires:
-- [kernel: supercalls/debug: expose ksu_set_manager_appid to sys_reboot](https://github.com/tiann/KernelSU/commit/d0a356b66f317ebaeaa0acec3a4a5ef2ee0a0fd8)
-- [kernel: supercalls: allow userspace to pull list entries](https://github.com/tiann/KernelSU/commit/9d88d8c7868549bab1b55e736c70aa7b86b54be1)
-- [kernel: sulog: basic ringbuffer, timestamped su log](https://github.com/tiann/KernelSU/commit/14ef10615403bbe066ea5b1d038ec06bb8edd3c2)
-- [kernel: supercalls: expose ksuver override](https://github.com/tiann/KernelSU/commit/3193f94ea87fc088c3f41b15fa420b601a57871c)
-- [kernel: expose spoof uname function to userspace](https://github.com/tiann/KernelSU/commit/3da7d1028a931e4d0e6c30c77ccee88a51e94d8c)
+- [kernel: supercalls/debug: expose ksu_set_manager_appid to sys_reboot](https://github.com/tiann/KernelSU/commit/2f6061edb2d75c153d124d8beb9c378e260644ea)
+- [kernel: supercalls: allow userspace to pull list entries](https://github.com/tiann/KernelSU/commit/8d541a3683db3cb4f941c3a82e8c4876c94a022d)
+- [kernel: sulog: basic ringbuffer, timestamped su log](https://github.com/tiann/KernelSU/commit/5d24a6568a9c8d50688d7d671f839289cc99b816)
+- [kernel: supercalls: expose ksuver override](https://github.com/tiann/KernelSU/commit/44138c0f9eebd7f6cdbdba44f78b0c66b5f267c7)
+- [kernel: expose spoof uname function to userspace](https://github.com/tiann/KernelSU/commit/eba2d2455aef3882a6e25a8f83f556d5d915bd2f)
