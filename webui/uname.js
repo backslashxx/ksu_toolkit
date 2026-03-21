@@ -1,25 +1,6 @@
 import { exec, toast } from 'kernelsu-alt';
 import { bin, modDir, unameFile } from './index.js'
 
-let defaultRelease = "", defaultVersion = "";
-
-function getDefaultUname() {
-    exec(`cat ${modDir}/default_uname`).then((result) => {
-        if (import.meta.env.DEV) { // vite debug
-            defaultRelease = "6.18.2";
-            defaultVersion = "#1 SMP PREEMPT_DYNAMIC Thu, 18 Dec 2025 18:00:18 +0000";
-        }
-        if (result.errno !== 0 || result.stdout.trim() === '') return;
-        result.stdout.trim().split('\n').forEach((line) => {
-            if (line.startsWith('RELEASE=')) {
-                defaultRelease = line.split('=').slice(1).join('');
-            } else if (line.startsWith('VERSION=')) {
-                defaultVersion = line.split('=').slice(1).join('');
-            }
-        });
-    }).catch(() => { });
-}
-
 async function getUname() {
     if (import.meta.env.DEV) { // vite debug
         document.getElementById('uname-release').value = "6.18.2-spoofed";
@@ -45,7 +26,7 @@ async function applyUname(newRelease, newVersion) {
     const setOnBoot = document.getElementById('uname-set-on-boot').selected;
 
     let cmd;
-    if (setOnBoot && (newRelease !== defaultRelease || newVersion !== defaultVersion)) {
+    if (setOnBoot && (newRelease !== "default" || newVersion !== "default")) {
         cmd = `printf "RELEASE=\\"${newRelease}\\"\nVERSION=\\"${newVersion}\\"" >`;
     } else {
         cmd = 'rm -rf';
@@ -74,11 +55,11 @@ function initListeners() {
         applyHandler();
     };
     resetBtn.onclick = () => {
-        applyHandler(defaultRelease, defaultVersion);
+        applyHandler("default", "default");
     };
     setOnBootBtn.addEventListener('change', () => {
         applyHandler();
     });
 }
 
-export { getDefaultUname, getUname, initListeners };
+export { getUname, initListeners };

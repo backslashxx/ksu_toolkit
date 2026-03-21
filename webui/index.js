@@ -474,7 +474,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkSuLogFeature();
 
     // Uname feature init
-    unameModule.getDefaultUname();
     unameModule.getUname();
     unameModule.initListeners();
 
