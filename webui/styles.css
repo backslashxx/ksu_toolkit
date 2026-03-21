@@ -111,10 +111,12 @@ md-tabs {
 
 .list {
     margin-top: 16px;
+    border-radius: 20px;
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 2px;
+    overflow: clip;
 }
 
 .list-item {
@@ -124,9 +126,14 @@ md-tabs {
     display: flex;
     align-items: center;
     gap: 12px;
-    border-radius: 8px;
+    border-radius: 4px;
     padding: 16px;
     box-sizing: border-box;
+    transition: border-radius 0.2s ease;
+}
+
+.list-item:active {
+    border-radius: 20px;
 }
 
 label {
