@@ -47,7 +47,7 @@ fi
 
 # we troll a little
 
-hot_install() {
+toolkit_hot_install() {
 	( sleep 3 ; 
 		busybox rm -rf "$MODDIR" ; 
 		mkdir -p "$MODDIR" ; 
@@ -56,16 +56,20 @@ hot_install() {
 	) & # fork in background
 }
 
-echo "[?] hot install?"
-echo "[!] press volume up within 6 seconds if so."
-if [ "$(busybox timeout 3 /system/bin/getevent -lq | grep -q KEY_VOLUMEUP 2>/dev/null ; echo $?)" -eq 0 ]; then
-	hot_install
-	echo "[+] hot install forked to background"
+if [ "$MOUNTIFY_HAS_HOT_INSTALL" = true ]; then
+	export MODULE_HOT_INSTALL_REQUEST="true"
 else
-	echo "[!] no volume up within 5 seconds"
-	echo "[+] performing hot install anyway"
-	hot_install
+	echo "[?] hot install?"
+	echo "[!] press volume up within 6 seconds if so."
+	if [ "$(busybox timeout 3 /system/bin/getevent -lq | grep -q KEY_VOLUMEUP 2>/dev/null ; echo $?)" -eq 0 ]; then
+		toolkit_hot_install
+		echo "[+] hot install forked to background"
+	else
+		echo "[!] no volume up within 5 seconds"
+		echo "[+] performing hot install anyway"
+		toolkit_hot_install
+	fi
+	echo "[+] no need to reboot"
 fi
-echo "[+] no need to reboot"
 
 # EOF
