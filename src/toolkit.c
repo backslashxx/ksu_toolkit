@@ -48,6 +48,17 @@ struct sulog_entry_rcv_ptr {
 #define GET_SULOG_DUMP_V2 10010  // get sulog dump, timestamped, last 250 escalations
 #define CHANGE_KSUVER 10011     // change ksu version
 #define CHANGE_SPOOF_UNAME 10012 // spoof uname release
+#define CHANGE_KSUFLAGS 10013     // change ksuflags, do the bit calc on your own, 1 + 2 + 4 + 8 blah blah
+
+/**
+ *
+ * NOTE on ksu flags:
+ * #define KSU_GET_INFO_FLAG_LKM (1U << 0)		1
+ * #define KSU_GET_INFO_FLAG_MANAGER (1U << 1)		2
+ * #define KSU_GET_INFO_FLAG_LATE_LOAD (1U << 2)	4	
+ * #define KSU_GET_INFO_FLAG_PR_BUILD (1U << 3)		8
+ * 
+ */
 
 __attribute__((noinline))
 static unsigned long strlen(const char *str)
@@ -161,7 +172,8 @@ static int c_main(long argc, char **argv, char **envp)
 	"./toolkit --getuid\n"
 	"./toolkit --getlist\n"
 	"./toolkit --sulog\n"
-	"./toolkit --setver <? ver>\n"
+	"./toolkit --setver <? uint>\n"
+	"./toolkit --setflags <? uint>\n"
 	"./toolkit --fkuname \"6.18\" \"#0 SMP ...\"\n"
 	;
 
@@ -363,6 +375,27 @@ static int c_main(long argc, char **argv, char **envp)
 		}
 
 		ksu_sys_reboot(CHANGE_KSUVER, ksuver_override, (long)sp);
+
+		if (*(uintptr_t *)sp != (uintptr_t)sp )
+			goto fail;
+
+		print_out(ok, sizeof(ok));
+		return 0;
+	}
+
+	// --setflags
+	if (!memcmp(&argv1[3], "etflags", sizeof("etflags"))) {
+		int ksuflags_override;
+
+		if (!argv2)
+			ksuflags_override = 0;
+		else {		
+			ksuflags_override = dumb_atoi(argv2);
+			if (!ksuflags_override)
+				goto fail;
+		}
+
+		ksu_sys_reboot(CHANGE_KSUFLAGS, ksuflags_override, (long)sp);
 
 		if (*(uintptr_t *)sp != (uintptr_t)sp )
 			goto fail;
