@@ -20,6 +20,7 @@ import * as uidModule from './uid.js';
 import * as umountModule from './umount.js';
 import * as sulogModule from './sulog.js';
 import * as unameModule from './uname.js';
+import * as flagsModule from './flags.js';
 
 export const modDir = '/data/adb/modules/ksu_toolkit';
 export const bin = 'toolkit';
@@ -30,6 +31,8 @@ export const uidFile = ksuDir + "/.manager_uid";
 export const versionFile = ksuDir + "/.manager_version";
 export const umountEntryFile = ksuDir + "/.umount_list";
 export const unameFile = ksuDir + "/.uname";
+
+let ksuFlagState = null;
 
 // Manager uid crown
 function appendManagerList() {
@@ -118,6 +121,47 @@ function setupUidPageListener() {
             executing = false;
             toast(result.stdout.trim() !== '' ? result.stdout : result.stderr);
         });
+    }
+}
+
+function setupKsuFlagListeners() {
+    document.querySelectorAll('.ksu-flag-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+            requestAnimationFrame(async () => {
+                if (!ksuFlagState || chip.disabled) return;
+
+                const nextValue = flagsModule.buildFlagsValue(flagsModule.readFlagState());
+
+                try {
+                    const result = await exec(`${bin} --setflags ${nextValue}`, { env: { PATH: `${modDir}` }});
+                    if (result.errno !== 0) throw new Error(result.stderr || 'Failed to update KSU flags');
+                    ksuFlagState = { ...ksuFlagState, ...flagsModule.readFlagState() };
+                    const output = result.stdout.trim() || result.stderr.trim();
+                    if (output && output !== 'ok') toast(output);
+                } catch {
+                    flagsModule.applyFlagStateToChip(ksuFlagState);
+                    toast('Failed to update KSU flags');
+                }
+            });
+        });
+    });
+}
+
+async function initKsuFlags() {
+    const parseInfoFlags = (text) => {
+        if (import.meta.env.DEV) return 5;
+        const match = text.match(/^flags:\s*(\d+)$/m);
+        if (!match) throw new Error('Missing flags value in toolkit --getinfo output');
+        return Number.parseInt(match[1], 10);
+    };
+
+    try {
+        const result = await exec(`${bin} --getinfo`, { env: { PATH: `${modDir}` }});
+        const flagsValue = parseInfoFlags(result.stdout);
+        ksuFlagState = flagsModule.getFlagState(flagsValue);
+        flagsModule.applyFlagStateToChip(ksuFlagState);
+    } catch {
+        toast('Failed to read KSU flags');
     }
 }
 
@@ -464,6 +508,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     await uidModule.getKsuManager();
     await uidModule.getCurrentUid();
     checkUidFeature();
+
+    // Ksu flags feature init
+    await initKsuFlags();
+    setupKsuFlagListeners();
 
     // Kernel umount feature init
     await umountModule.getUmountList();

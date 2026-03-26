@@ -58,6 +58,10 @@ md-tabs {
     width: 100%
 }
 
+#ksu-flags-chip-set {
+    margin-top: 16px;
+}
+
 .horizontal-pager {
     position: relative;
     width: 100%;
