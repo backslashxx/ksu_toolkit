@@ -54,7 +54,7 @@ struct sulog_entry_rcv_ptr {
  *
  * NOTE on ksu flags:
  * #define KSU_GET_INFO_FLAG_LKM (1U << 0)		1
- * #define KSU_GET_INFO_FLAG_MANAGER (1U << 1)		2
+ * #define KSU_GET_INFO_FLAG_MANAGER (1U << 1)		2  <-- always enable this
  * #define KSU_GET_INFO_FLAG_LATE_LOAD (1U << 2)	4	
  * #define KSU_GET_INFO_FLAG_PR_BUILD (1U << 3)		8
  * 
@@ -160,6 +160,26 @@ start:
 		goto start;
 
 	return;
+}
+
+__attribute__((always_inline))
+static int toolkit_ksu_override_common(long cmdtype, char *restrict argv2, void *restrict sp){
+
+	int override = 0;
+	if (!argv2)
+		goto send;
+
+	override = dumb_atoi(argv2);
+	if (!override)
+		return 1;
+		
+send:
+	ksu_sys_reboot(cmdtype, override, (long)sp);
+	if ( *(uintptr_t *)sp != (uintptr_t)sp )
+		return 1;
+	
+	return 0;
+
 }
 
 __attribute__((always_inline))
@@ -364,44 +384,24 @@ static int c_main(long argc, char **argv, char **envp)
 
 	// --setver
 	if (!memcmp(&argv1[1], "-setver", sizeof("-setver"))) {
-		int ksuver_override;
-
-		if (!argv2)
-			ksuver_override = 0;
-		else {		
-			ksuver_override = dumb_atoi(argv2);
-			if (!ksuver_override)
-				goto fail;
-		}
-
-		ksu_sys_reboot(CHANGE_KSUVER, ksuver_override, (long)sp);
-
-		if (*(uintptr_t *)sp != (uintptr_t)sp )
+		int ret = toolkit_ksu_override_common(CHANGE_KSUVER, argv2, sp);
+		if (ret)
 			goto fail;
 
 		print_out(ok, sizeof(ok));
 		return 0;
+
 	}
 
 	// --setflags
 	if (!memcmp(&argv1[3], "etflags", sizeof("etflags"))) {
-		int ksuflags_override;
-
-		if (!argv2)
-			ksuflags_override = 0;
-		else {		
-			ksuflags_override = dumb_atoi(argv2);
-			if (!ksuflags_override)
-				goto fail;
-		}
-
-		ksu_sys_reboot(CHANGE_KSUFLAGS, ksuflags_override, (long)sp);
-
-		if (*(uintptr_t *)sp != (uintptr_t)sp )
+		int ret = toolkit_ksu_override_common(CHANGE_KSUFLAGS, argv2, sp);
+		if (ret)
 			goto fail;
 
 		print_out(ok, sizeof(ok));
 		return 0;
+
 	}
 
 	// --spoof-uname
