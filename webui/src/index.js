@@ -398,10 +398,13 @@ function checkUpdate() {
                     setTimeout(() => {
                         exec(`am start -a android.intent.action.VIEW -d ${link}`)
                             .then(({ errno }) => {
-                                if (errno !== 0) toast("Failed to open link");
+                                if (errno !== 0) {
+                                    toast("Failed to open link");
+                                    return;
+                                }
+                                document.getElementById('exit-btn').click();
                             });
                     }, 100);
-                    document.getElementById('exit-btn').click();
                 }
             }
         });
