@@ -37,6 +37,13 @@ struct sulog_entry_rcv_ptr {
 	uint64_t uptime_ptr; // uptime
 };
 
+struct ksu_get_info_cmd {
+	uint32_t version; // Output: KERNEL_SU_VERSION
+	uint32_t flags; // Output: KSU_GET_INFO_FLAG_* bits
+	uint32_t features; // Output: max feature ID supported
+};
+#define KSU_IOCTL_GET_INFO _IOC(_IOC_READ, 'K', 2, 0)
+
 #define SULOG_ENTRY_MAX 250
 #define SULOG_BUFSIZ SULOG_ENTRY_MAX * (sizeof (struct sulog_entry))
 
@@ -191,6 +198,7 @@ static int c_main(long argc, char **argv, char **envp)
 	"./toolkit --setuid <uid>\n"
 	"./toolkit --getuid\n"
 	"./toolkit --getlist\n"
+	"./toolkit --getinfo\n"
 	"./toolkit --sulog\n"
 	"./toolkit --setver <? uint>\n"
 	"./toolkit --setflags <? uint>\n"
@@ -400,6 +408,34 @@ static int c_main(long argc, char **argv, char **envp)
 			goto fail;
 
 		print_out(ok, sizeof(ok));
+		return 0;
+
+	}
+
+	// --getinfo
+	if (!memcmp(&argv1[2], "getinfo", sizeof("getinfo"))) {
+		char buf_version[] = "ksuver: ??????\n";
+		char buf_flags[] = "flags: ??????\n";
+		char buf_features[] = "features: ??????\n";
+
+		ksu_sys_reboot(KSU_INSTALL_MAGIC2, 0, (long)&fd);
+		if (!fd)
+			goto fail;
+
+		struct ksu_get_info_cmd cmd;
+		int ret = sys_ioctl(fd, KSU_IOCTL_GET_INFO, (long)&cmd);
+		if (ret)
+			goto fail;
+
+		long_to_str(cmd.version, 6, &buf_version[8]);
+		print_out(buf_version, sizeof(buf_version) - 1);
+
+		long_to_str(cmd.flags, 6, &buf_flags[7]);
+		print_out(buf_flags, sizeof(buf_flags) - 1);
+
+		long_to_str(cmd.features, 6, &buf_features[10]);
+		print_out(buf_features, sizeof(buf_features) - 1);
+
 		return 0;
 
 	}
