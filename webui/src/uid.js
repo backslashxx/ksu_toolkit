@@ -9,10 +9,7 @@ async function getKsuManager() {
         let packages = [];
         const result = spawn(`
             abi=$(getprop ro.bionic.arch)
-            pm list packages -3 | cut -d: -f2 | busybox xargs -n1 -P$(busybox nproc) sh -c '
-                dir=$(pm path "$1" 2>/dev/null | sed -n "1s/^package://p" | busybox xargs dirname)
-                [ -f "$dir/lib/'"$abi"'/libksud.so" ] && echo "$1"
-            ' sh
+            find /data/app -name "libksud.so" -path "*/lib/$abi/*" | cut -d/ -f5 | cut -d- -f1
         `, [], { env: { PATH: `$PATH:${ksuDir}/bin` }});
         result.stdout.on('data', (data) => packages.push(data.trim()));
         result.on('exit', async () => {
