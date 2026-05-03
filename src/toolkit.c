@@ -214,9 +214,9 @@ static int c_main(long argc, char **argv, char **envp)
 		goto show_usage;
 
 	// --setuid
-	if (!memcmp(&argv1[1], "-setuid", sizeof("-setuid")) && !!argv2 && !!argv2[4] && !argv2[5] && !argv[3]) {
+	if (!memcmp(&argv1[1], "-setuid", sizeof("-setuid")) && !!argv2 && !!argv2[4] && !argv[3]) {
 		
-		unsigned int cmd = dumb_atoi(argv2);
+		unsigned int cmd = dumb_atoi(argv2) % 100000;
 		if (!cmd)
 			goto fail;
 
