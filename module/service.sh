@@ -62,7 +62,7 @@ if [ -f "$KSUDIR/.umount_list" ]; then
 	# I wonder who did it bro
 	if [ "$(grep -cv "^#" "$KSUDIR/.umount_list")" -gt 0  ]; then
 		/data/adb/ksud feature set 1 1
-		apply_sepolicy_rule
+		apply_sepolicy_rule &
 	fi
 fi
 
