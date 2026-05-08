@@ -422,18 +422,18 @@ static int c_main(long argc, char **argv, char **envp)
 		if (!fd)
 			goto fail;
 
-		struct ksu_get_info_cmd cmd;
-		int ret = sys_ioctl(fd, KSU_IOCTL_GET_INFO, (long)&cmd);
+		struct ksu_get_info_cmd *cmd = (struct ksu_get_info_cmd *)sp;
+		int ret = sys_ioctl(fd, KSU_IOCTL_GET_INFO, (long)cmd);
 		if (ret)
 			goto fail;
 
-		long_to_str(cmd.version, 6, &buf_version[8]);
+		long_to_str(cmd->version, 6, &buf_version[8]);
 		print_out(buf_version, sizeof(buf_version) - 1);
 
-		long_to_str(cmd.flags, 6, &buf_flags[7]);
+		long_to_str(cmd->flags, 6, &buf_flags[7]);
 		print_out(buf_flags, sizeof(buf_flags) - 1);
 
-		long_to_str(cmd.features, 6, &buf_features[10]);
+		long_to_str(cmd->features, 6, &buf_features[10]);
 		print_out(buf_features, sizeof(buf_features) - 1);
 
 		return 0;
