@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 #include <ctype.h>
+#include <stddef.h>
 
 #include "small_rt.h"
 
@@ -186,7 +187,21 @@ send:
 		return 1;
 	
 	return 0;
+}
 
+__attribute__((always_inline))
+static void *toolkit_malloc(unsigned long size)
+{
+	long current_brk = __syscall(SYS_brk, 0, NONE, NONE, NONE, NONE, NONE);
+	if (!current_brk)
+		return NULL;
+
+	long new_brk = current_brk + size;
+	long ret = __syscall(SYS_brk, new_brk, NONE, NONE, NONE, NONE, NONE);
+	if (ret < new_brk)
+		return NULL;
+
+	return (void *)current_brk;
 }
 
 __attribute__((always_inline))
@@ -288,16 +303,12 @@ static int c_main(long argc, char **argv, char **envp)
 		if (!total_size)
 			goto list_empty;
 
-		// this costs 20 bytes, dont bother.
-		//if (total_size > 8 * 1000 * 1000)
-		//	__builtin_trap();
-
-		// yes we literally even dont bother with alloca
-		// lifetime ends right after anyway, sp is now free game
-
 		// now we can prepare some memory +1 (extra \0)
 		// extra null terminator so we will have '\0\0' on tail
-		char *buffer = sp;
+		char *buffer = toolkit_malloc(total_size + 1);
+		if (!buffer)
+			goto fail;
+		
 		buffer[total_size] = '\0'; 
 
 		cmd.arg = (uint64_t)buffer;
