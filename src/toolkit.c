@@ -192,9 +192,9 @@ send:
 __attribute__((always_inline))
 static void *toolkit_malloc(unsigned long size)
 {
+	size = (size + 7) & ~7; // align 8 bytes up
+
 	long current_brk = __syscall(SYS_brk, 0, NONE, NONE, NONE, NONE, NONE);
-	if (!current_brk)
-		return NULL;
 
 	long new_brk = current_brk + size;
 	long ret = __syscall(SYS_brk, new_brk, NONE, NONE, NONE, NONE, NONE);
