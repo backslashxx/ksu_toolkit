@@ -303,13 +303,10 @@ static int c_main(long argc, char **argv, char **envp)
 		if (!total_size)
 			goto list_empty;
 
-		// now we can prepare some memory +1 (extra \0)
-		// extra null terminator so we will have '\0\0' on tail
-		char *buffer = toolkit_malloc(total_size + 1);
+		// now we can prepare some memory
+		char *buffer = toolkit_malloc(total_size );
 		if (!buffer)
 			goto fail;
-		
-		buffer[total_size] = '\0'; 
 
 		cmd.arg = (uint64_t)buffer;
 		// cmd.flags = 0;
@@ -333,26 +330,11 @@ static int c_main(long argc, char **argv, char **envp)
 		// walk the pointer
 		char_buf = char_buf + len + 1;
 
-#if 1
-		// technically this should be 'char_buf - buffer < total_size'
-		// but since we've added an extra null terminator right after alloca
-		// that will act as a bound for it
-		if (*char_buf)
-			goto bufwalk_start;
-
-		// compiler will figure that this aliases and reuse variables 
-		// rather than reviving 'buffer' use 'char_buf - total_size'
-		// yes this is optimizing for size while passing asan
-		print_out(char_buf - total_size, total_size);	
-#else
-		// this is the technically correct way to do it
-		// total_size + 1 on alloca and that extra null term can be removed
-		// the issue is that this costs 36 bytes
 		if (char_buf - buffer < total_size)
 			goto bufwalk_start;
 
 		print_out(buffer, total_size);
-#endif
+
 		return 0;
 	}
 
