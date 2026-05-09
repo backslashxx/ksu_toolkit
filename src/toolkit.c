@@ -250,17 +250,17 @@ static int c_main(long argc, char **argv, char **envp)
 		if (!fd)
 			goto fail;
 
-		struct ksu_get_manager_uid_cmd cmd;
-		int ret = sys_ioctl(fd, KSU_IOCTL_GET_MANAGER_UID, (long)&cmd);
+		struct ksu_get_manager_uid_cmd *cmd = (struct ksu_get_manager_uid_cmd *)sp;
+		int ret = sys_ioctl(fd, KSU_IOCTL_GET_MANAGER_UID, (long)cmd);
 		if (ret)
 			goto fail;
 
-		if (!(cmd.uid > 10000 && cmd.uid < 20000))
+		if (!(cmd->uid > 10000 && cmd->uid < 20000))
 			goto fail;
 
 		// yeah we reuse argv1 as our buffer
 		// this one is really just for a buffer/scratchpad
-		long_to_str(cmd.uid, 5, argv1);
+		long_to_str(cmd->uid, 5, argv1);
 		argv1[5] = '\n';
 
 		print_out(argv1, 6);
