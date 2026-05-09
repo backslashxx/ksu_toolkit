@@ -198,7 +198,7 @@ static void *toolkit_malloc(unsigned long size)
 
 	long new_brk = current_brk + size;
 	long ret = __syscall(SYS_brk, new_brk, NONE, NONE, NONE, NONE, NONE);
-	if (ret < new_brk)
+	if (ret != new_brk)
 		return NULL;
 
 	return (void *)current_brk;
