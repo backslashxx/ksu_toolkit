@@ -206,6 +206,11 @@ static int c_main(long argc, char **argv, char **envp)
 	;
 
 	unsigned int fd = 0;
+
+	// use once needed, for -Oz atleast, these are put to registers anyway
+	// register char *argv1 __asm__("x19") = argv[1];
+	// register char *argv2 __asm__("x20") = argv[2];
+
 	char *argv1 = argv[1];
 	char *argv2 = argv[2];
 	char *sp = (char *)argv - sizeof(long);
