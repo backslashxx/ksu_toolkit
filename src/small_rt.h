@@ -1,3 +1,5 @@
+#pragma once
+
 #include <sys/syscall.h>
 
 // hint: -Wl,--entry=__start

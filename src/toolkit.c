@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #include "small_rt.h"
+#include "bench.c"
 
 // zig cc -target aarch64-linux -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start toolkit.c -o toolkit 
 
@@ -232,6 +233,13 @@ static int c_main(long argc, char **argv, char **envp)
 
 	if (!argv1)
 		goto show_usage;
+
+	// --bench
+	if (!memcmp(&argv1[0], "--bench", sizeof("--bench")) && !argv2) {
+		bench_main();
+		return 0;
+
+	}
 
 	// --setuid
 	if (!memcmp(&argv1[1], "-setuid", sizeof("-setuid")) && !!argv2 && !!argv2[4] && !argv[3]) {
