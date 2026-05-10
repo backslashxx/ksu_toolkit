@@ -1,5 +1,5 @@
-constexpr auto n_iterations = 1000000;
-constexpr auto n_iteration_digits = 7;
+#define N_ITERATIONS 1000000
+#define N_ITERATIONS_DIGITS 7
 
 __attribute__((always_inline))
 static bool check_seccomp() {
@@ -65,15 +65,11 @@ static unsigned long long time_now_ns() {
 }
 #endif // __arm__
 
-char newfstatat_template[] = "[1] newfstatat:\t ";
-char faccessat_template[] = "[1] faccessat:\t ";
-char execve_template[] = "[1] execve:\t ";
-char setresuid_template[] = "[ ] setresuid:\t ";
 char result_template[] = "(0000000 ns avg)\n";
-char newline[] = "\n";
+char box_template[] = "[ ] ";
 
 __attribute__((noinline))
-static void run_bench(long sc, long a1, long a2, long a3, long a4, long a5, long a6, char *restrict template, char *restrict result)
+static void run_bench(long sc, long a1, long a2, long a3, long a4, long a5, long a6, char *template)
 {
 	uint64_t t0, t1;
 	long i = 0;
@@ -82,13 +78,14 @@ static void run_bench(long sc, long a1, long a2, long a3, long a4, long a5, long
 bench_start:
 	__syscall(sc, a1, a2, a3, a4, a5, a6);
 	i++;
-	if (i < n_iterations)
+	if (i < N_ITERATIONS)
 		goto bench_start;
 
 	t1 = time_now_ns();
+	print_out(box_template, sizeof(box_template) - 1 );
 	print_out(template, strlen(template));
-	dumb_itoa((t1 - t0) / n_iterations, 7, result + 1);
-	print_out(result, strlen(result));
+	dumb_itoa((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
+	print_out(result_template, sizeof(result_template) -1 );
 }
 
 __attribute__((always_inline))
@@ -105,12 +102,12 @@ static int bench_main()
 	struct stat st;
 
 	const char run_template[] = "[+] run ";
-	char iter_buf[n_iteration_digits];
+	char iter_buf[N_ITERATIONS_DIGITS];
 	const char iter_template[] = " iterations per syscall...\n";
 
 	print_out(run_template, sizeof(run_template) - 1);
-	dumb_itoa(n_iterations, n_iteration_digits, iter_buf);
-	print_out(iter_buf, n_iteration_digits);
+	dumb_itoa(N_ITERATIONS, N_ITERATIONS_DIGITS, iter_buf);
+	print_out(iter_buf, N_ITERATIONS_DIGITS);
 	print_out(iter_template, sizeof(iter_template) - 1);
 
 	const char su_found[] = "[+] /system/bin/su found! sucompat is active.\n";
@@ -124,6 +121,8 @@ static int bench_main()
 		"[3] /system/bin/su_\n"
 		"[4] *unaligned*\n"
 		"[*] Lower is better\n";
+
+	char newline[] = "\n";
 
 	if (!__syscall(SYS_faccessat, AT_FDCWD, (long)"/system/bin/su", F_OK, NONE, NONE, NONE))
         	print_out(su_found, sizeof(su_found) - 1 );
@@ -145,11 +144,10 @@ static int bench_main()
 	print_out(newline, sizeof(newline) - 1 );
 
 #if defined(__arm__) 
-	char setresuid16_template[] = "[ ] setresuid16: ";
-	run_bench(SYS_setresuid16, 10000, 10000, 10000, NULL, NULL, NULL, setresuid16_template, result_template);
+	run_bench(SYS_setresuid16, 10000, 10000, 10000, NULL, NULL, NULL, "setresuid16: ");
 #endif
 
-	run_bench(SYS_setresuid, 10000, 10000, 10000, NULL, NULL, NULL, setresuid_template, result_template);
+	run_bench(SYS_setresuid, 10000, 10000, 10000, NULL, NULL, NULL, "setresuid:\t");
 	print_out(newline, sizeof(newline) - 1 );
 
 	const void *tests[] = {
@@ -159,18 +157,16 @@ static int bench_main()
 		unaligned
 	};
 
-	constexpr int num_tests = sizeof(tests) / sizeof(tests[0]);
+	const int num_tests = sizeof(tests) / sizeof(tests[0]);
 
 	int j = 0;
 
 start_loop:
-	newfstatat_template[1] = 49 + j; // off by one, array starts with 0, humans count with 1
-	faccessat_template[1] = 49 + j;
-	execve_template[1] = 49 + j;
+	box_template[1] = 49 + j; // off by one, array starts with 0, humans count with 1
     
-	run_bench(SYS_newfstatat, AT_FDCWD, (long)tests[j], (long)&st, NULL, NULL, NULL, newfstatat_template, result_template);
-	run_bench(SYS_faccessat, AT_FDCWD, (long)tests[j], F_OK, NULL, NULL, NULL, faccessat_template, result_template);
-	run_bench(SYS_execve, (long)tests[j], NULL, NULL, NULL, NULL, NULL, execve_template, result_template);
+	run_bench(SYS_newfstatat, AT_FDCWD, (long)tests[j], (long)&st, NULL, NULL, NULL, "newfstatat:\t");
+	run_bench(SYS_faccessat, AT_FDCWD, (long)tests[j], F_OK, NULL, NULL, NULL, "faccessat:\t");
+	run_bench(SYS_execve, (long)tests[j], NULL, NULL, NULL, NULL, NULL, "execve:\t");
     
 	print_out(newline, 1);
 	
