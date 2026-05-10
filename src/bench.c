@@ -1,27 +1,5 @@
-#define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/syscall.h>
-#include <time.h>
-#include <sched.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <sys/wait.h>
-#include <signal.h>
-
-#include "small_rt.h"
-
-// zig cc -target aarch64-linux -s -Oz -Wno-int-conversion -std=c23 -static -Wl,--gc-sections,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants -Wno-unknown-attributes syscall_bench_nocrt0/bench.c -o bench_arm64
-// zig cc -target arm-linux -s -Oz -Wno-int-conversion -std=c23 -static -Wl,--gc-sections,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants -Wno-unknown-attributes syscall_bench_nocrt0/bench.c -o bench_arm
-
 constexpr auto n_iterations = 1000000;
 constexpr auto n_iteration_digits = 7;
-
-__attribute__((noinline)) static void print_out(const char *buf, unsigned long len);
-__attribute__((noinline)) static void long_to_str(unsigned long number, unsigned long len, char *buf);
-__attribute__((noinline)) static unsigned long strlen(const char *str);
 
 __attribute__((always_inline))
 static bool check_seccomp() {
@@ -87,6 +65,13 @@ static unsigned long long time_now_ns() {
 }
 #endif // __arm__
 
+char newfstatat_template[] = "[1] newfstatat:\t ";
+char faccessat_template[] = "[1] faccessat:\t ";
+char execve_template[] = "[1] execve:\t ";
+char setresuid_template[] = "[ ] setresuid:\t ";
+char result_template[] = "(0000000 ns avg)\n";
+char newline[] = "\n";
+
 __attribute__((noinline))
 static void run_bench(long sc, long a1, long a2, long a3, long a4, long a5, long a6, char *restrict template, char *restrict result)
 {
@@ -102,7 +87,7 @@ bench_start:
 
 	t1 = time_now_ns();
 	print_out(template, strlen(template));
-	long_to_str((t1 - t0) / n_iterations, 7, result + 1);
+	dumb_itoa((t1 - t0) / n_iterations, 7, result + 1);
 	print_out(result, strlen(result));
 }
 
@@ -124,7 +109,7 @@ static int bench_main()
 	const char iter_template[] = " iterations per syscall...\n";
 
 	print_out(run_template, sizeof(run_template) - 1);
-	long_to_str(n_iterations, n_iteration_digits, iter_buf);
+	dumb_itoa(n_iterations, n_iteration_digits, iter_buf);
 	print_out(iter_buf, n_iteration_digits);
 	print_out(iter_template, sizeof(iter_template) - 1);
 
@@ -151,14 +136,6 @@ static int bench_main()
         	print_out(seccomp_disabled, sizeof(seccomp_disabled) - 1 );
 
 	print_out(extra_lines, sizeof(extra_lines) - 1 );
-
-	char newfstatat_template[] = "[1] newfstatat:\t ";
-	char faccessat_template[] = "[1] faccessat:\t ";
-	char execve_template[] = "[1] execve:\t ";
-	char setresuid_template[] = "[ ] setresuid:\t ";
-
-	char result_template[] = "(0000000 ns avg)\n";
-	char newline[] = "\n";
 
 	const void *nothing = nullptr;
 	const char *devnull = "/dev/null";
