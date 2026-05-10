@@ -16,9 +16,11 @@ jobs:
           pwd
 
           cd src
-          clang -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start -fsanitize=address -fsanitize=undefined toolkit.c -o toolkit
+          clang -Oz -std=c2x -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wno-int-conversion -Wl,--entry=__start -fsanitize=address -fsanitize=undefined main.c -o toolkit
           
           ./toolkit || true
+
+          ./toolkit --bench || true
           
           ./toolkit --setuid 12345 || true
           
