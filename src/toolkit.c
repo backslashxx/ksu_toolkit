@@ -1,176 +1,3 @@
-#include <stdint.h>
-#include <sys/ioctl.h>
-#include <ctype.h>
-#include <stddef.h>
-
-#include "small_rt.h"
-#include "bench.c"
-
-// zig cc -target aarch64-linux -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start toolkit.c -o toolkit 
-
-#define memcmp __builtin_memcmp
-
-// get uid from kernelsu
-struct ksu_get_manager_uid_cmd {
-	uint32_t uid;
-};
-#define KSU_IOCTL_GET_MANAGER_UID _IOC(_IOC_READ, 'K', 10, 0)
-
-struct ksu_add_try_umount_cmd {
-	uint64_t arg; // char ptr, this is the mountpoint
-	uint32_t flags; // this is the flag we use for it
-	uint8_t mode; // denotes what to do with it 0:wipe_list 1:add_to_list 2:delete_entry
-};
-#define KSU_IOCTL_ADD_TRY_UMOUNT _IOC(_IOC_WRITE, 'K', 18, 0)
-
-#define KSU_INSTALL_MAGIC1 0xDEADBEEF
-#define KSU_INSTALL_MAGIC2 0xCAFEBABE
-
-// sulog v2, timestamped version, 250 entries, 8 bytes per entry
-struct sulog_entry {
-	uint32_t s_time; // uptime in seconds
-	uint32_t uid : 24;  // uid, uint24_t
-	uint32_t sym : 8;        // symbol
-} __attribute__((packed));
-
-struct sulog_entry_rcv_ptr {
-	uint64_t index_ptr; // send index here
-	uint64_t buf_ptr; // send buf here
-	uint64_t uptime_ptr; // uptime
-};
-
-struct ksu_get_info_cmd {
-	uint32_t version; // Output: KERNEL_SU_VERSION
-	uint32_t flags; // Output: KSU_GET_INFO_FLAG_* bits
-	uint32_t features; // Output: max feature ID supported
-};
-#define KSU_IOCTL_GET_INFO _IOC(_IOC_READ, 'K', 2, 0)
-
-#define SULOG_ENTRY_MAX 250
-#define SULOG_BUFSIZ SULOG_ENTRY_MAX * (sizeof (struct sulog_entry))
-
-// magic numbers for custom interfaces
-#define CHANGE_MANAGER_UID 10006
-#define KSU_UMOUNT_GETSIZE 107   // get list size // shit is u8 we cant fit 10k+ on it
-#define KSU_UMOUNT_GETLIST 108   // get list
-#define GET_SULOG_DUMP 10009     // deprecated
-#define GET_SULOG_DUMP_V2 10010  // get sulog dump, timestamped, last 250 escalations
-#define CHANGE_KSUVER 10011     // change ksu version
-#define CHANGE_SPOOF_UNAME 10012 // spoof uname release
-#define CHANGE_KSUFLAGS 10013     // change ksuflags, do the bit calc on your own, 1 + 2 + 4 + 8 blah blah
-
-/**
- *
- * NOTE on ksu flags:
- * #define KSU_GET_INFO_FLAG_LKM (1U << 0)		1
- * #define KSU_GET_INFO_FLAG_MANAGER (1U << 1)		2  <-- always enable this
- * #define KSU_GET_INFO_FLAG_LATE_LOAD (1U << 2)	4	
- * #define KSU_GET_INFO_FLAG_PR_BUILD (1U << 3)		8
- * 
- */
-
-__attribute__((noinline))
-static unsigned long strlen(const char *str)
-{
-	const char *s = str;
-	while (*s)
-		s++;
-
-	return s - str;
-}
-
-__attribute__((noinline))
-static void print_out(const char *buf, unsigned long len)
-{
-	__syscall(SYS_write, 1, (long)buf, len, NONE, NONE, NONE);
-}
-
-__attribute__((noinline))
-static void print_err(const char *buf, unsigned long len)
-{
-	__syscall(SYS_write, 2, (long)buf, len, NONE, NONE, NONE);
-}
-
-/*
- * ksu_sys_reboot, small shim for ksu backdoored sys_reboot 
- *
- * magic1 is always 0xDEADBEEF (KSU_INSTALL_MAGIC1)
- * controllable magic2, cmd, arg
- *
- */
-__attribute__((noinline))
-static void ksu_sys_reboot(long magic2, long cmd, long arg)
-{
-	__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, magic2, cmd, arg, NONE, NONE);
-}
-
-/*
- * sys_ioctl, literally ioctl()
- * duh
- *
- */
-__attribute__((always_inline))
-static int sys_ioctl(unsigned long fd, unsigned long cmd, unsigned long arg)
-{
-	return (int)__syscall(SYS_ioctl, fd, cmd, arg, NONE, NONE, NONE);
-}
-
-/*
- *  dumb_atoi
- *
- * - very dumb
- */
-__attribute__((noinline))
-static int dumb_atoi(const char *str)
-{
-	int uid = 0;
-	int i = strlen(str) - 1;
-	int m = 1;
-
-start:
-	// llvm actually has an optimized isdigit
-	// just not prefixed with __builtin
-	// code generated is the same size, so better use it
-	if (!isdigit(str[i]))
-		return 0;
-
-	// __builtin_fma ?
-	uid = uid + ( str[i] - '0' ) * m;
-	m = m * 10;
-	i--;
-	
-	if (!(i < 0))
-		goto start;
-
-	return uid;
-}
-
-/*
- *	long_to_str, long to string
- *	
- *	converts an int to string with expected len
- *	
- *	caller is reposnible for sanity!
- *	no bounds check, no nothing, do not pass len = 0
- *	
- *	example:
- *	long_to_str(10123, 5, buf); // where buf is char buf[5]; atleast
- */
-__attribute__((noinline))
-static void long_to_str(unsigned long number, unsigned long len, char *buf)
-{
-
-start:
-	buf[len - 1] = 48 + (number % 10);
-	number = number / 10;
-	len--;
-
-	if (len > 0)
-		goto start;
-
-	return;
-}
-
 __attribute__((always_inline))
 static int toolkit_ksu_override_common(long cmdtype, char *restrict argv2, void *restrict sp){
 
@@ -191,26 +18,12 @@ send:
 }
 
 __attribute__((always_inline))
-static void *toolkit_malloc(unsigned long size)
-{
-	size = (size + 7) & ~7; // align 8 bytes up
-
-	long current_brk = __syscall(SYS_brk, 0, NONE, NONE, NONE, NONE, NONE);
-
-	long new_brk = current_brk + size;
-	long ret = __syscall(SYS_brk, new_brk, NONE, NONE, NONE, NONE, NONE);
-	if (ret != new_brk)
-		return NULL;
-
-	return (void *)current_brk;
-}
-
-__attribute__((always_inline))
-static int c_main(long argc, char **argv, char **envp)
+static int toolkit_main(long argc, char **argv, char **envp)
 {
 	const char ok[] = { 'o', 'k', '\n'};
 	const char usage[] =
 	"Usage:\n"
+	"./toolkit --bench\n"
 	"./toolkit --setuid <uid>\n"
 	"./toolkit --getuid\n"
 	"./toolkit --getlist\n"
@@ -283,7 +96,7 @@ static int c_main(long argc, char **argv, char **envp)
 
 		// yeah we reuse argv1 as our buffer
 		// this one is really just for a buffer/scratchpad
-		long_to_str(cmd->uid, 5, argv1);
+		dumb_itoa(cmd->uid, 5, argv1);
 		argv1[5] = '\n';
 
 		print_out(argv1, 6);
@@ -371,7 +184,7 @@ static int c_main(long argc, char **argv, char **envp)
 		int i = 0;
 		int idx;
 
-		long_to_str(sulog_uptime, 10, &uptime_text[8]);
+		dumb_itoa(sulog_uptime, 10, &uptime_text[8]);
 		print_out(uptime_text, sizeof(uptime_text));
 
 	sulog_loop_start:		
@@ -382,8 +195,8 @@ static int c_main(long argc, char **argv, char **envp)
 		if (entry_ptr->sym) {
 			// now write symbol
 			text_v2[5] = entry_ptr->sym;
-			long_to_str(entry_ptr->uid, 6, &text_v2[12]);
-			long_to_str(entry_ptr->s_time, 10, &text_v2[25]);
+			dumb_itoa(entry_ptr->uid, 6, &text_v2[12]);
+			dumb_itoa(entry_ptr->s_time, 10, &text_v2[25]);
 
 			print_out(text_v2, sizeof(text_v2) - 1 );
 		}
@@ -433,13 +246,13 @@ static int c_main(long argc, char **argv, char **envp)
 		if (ret)
 			goto fail;
 
-		long_to_str(cmd->version, 6, &buf_version[8]);
+		dumb_itoa(cmd->version, 6, &buf_version[8]);
 		print_out(buf_version, sizeof(buf_version) - 1);
 
-		long_to_str(cmd->flags, 6, &buf_flags[7]);
+		dumb_itoa(cmd->flags, 6, &buf_flags[7]);
 		print_out(buf_flags, sizeof(buf_flags) - 1);
 
-		long_to_str(cmd->features, 6, &buf_features[10]);
+		dumb_itoa(cmd->features, 6, &buf_features[10]);
 		print_out(buf_features, sizeof(buf_features) - 1);
 
 		return 0;
@@ -476,14 +289,3 @@ fail:
 	return 1;
 }
 
-__attribute__((used))
-void prep_main(long *sp)
-{
-	long argc = *sp;
-	char **argv = (char **)(sp + 1);
-	char **envp = argv + argc + 1; // we need to offset it by the number of argc's!
-
-	long exit_code = c_main(argc, argv, envp);
-	__syscall(SYS_exit, exit_code, NONE, NONE, NONE, NONE, NONE);
-	__builtin_unreachable();
-}
