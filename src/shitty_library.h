@@ -31,33 +31,33 @@ static unsigned long strlen(const char *str)
 }
 
 /*
- *  dumb_atoi
+ *	dumb_atoi, string to int
  *
- * - very dumb
+ *	converts a string to int
+ *	assumes numeric char
+ *
+ *	caller is responsible for sanity
+ *
  */
 __attribute__((noinline))
 static int dumb_atoi(const char *str)
 {
-	int uid = 0;
-	int i = strlen(str) - 1;
-	int m = 1;
+	int res = 0;
 
 start:
 	// llvm actually has an optimized isdigit
 	// just not prefixed with __builtin
 	// code generated is the same size, so better use it
-	if (!isdigit(str[i]))
+	if (!isdigit(*str))
 		return 0;
 
-	// __builtin_fma ?
-	uid = uid + ( str[i] - '0' ) * m;
-	m = m * 10;
-	i--;
-	
-	if (!(i < 0))
+	res = (res * 10) + (*str - 48);
+	str++;
+
+	if (*str)
 		goto start;
 
-	return uid;
+	return res;
 }
 
 /*
