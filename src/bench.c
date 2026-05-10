@@ -147,7 +147,7 @@ static int bench_main()
 	run_bench(SYS_setresuid16, 10000, 10000, 10000, NULL, NULL, NULL, "setresuid16: ");
 #endif
 
-	run_bench(SYS_setresuid, 10000, 10000, 10000, NULL, NULL, NULL, "setresuid: \t");
+	run_bench(SYS_setresuid, 10000, 10000, 10000, NULL, NULL, NULL, "setresuid:   ");
 	print_out(newline, sizeof(newline) - 1 );
 
 	const void *tests[] = {
@@ -164,9 +164,9 @@ static int bench_main()
 start_loop:
 	box_template[1] = 49 + j; // off by one, array starts with 0, humans count with 1
     
-	run_bench(SYS_newfstatat, AT_FDCWD, (long)tests[j], (long)&st, NULL, NULL, NULL, "newfstatat: \t");
-	run_bench(SYS_faccessat, AT_FDCWD, (long)tests[j], F_OK, NULL, NULL, NULL, "faccessat: \t");
-	run_bench(SYS_execve, (long)tests[j], NULL, NULL, NULL, NULL, NULL, "execve: \t");
+	run_bench(SYS_newfstatat, AT_FDCWD, (long)tests[j], (long)&st, NULL, NULL, NULL, "newfstatat:  ");
+	run_bench(SYS_faccessat, AT_FDCWD, (long)tests[j], F_OK, NULL, NULL, NULL, "faccessat:   ");
+	run_bench(SYS_execve, (long)tests[j], NULL, NULL, NULL, NULL, NULL, "execve:      ");
     
 	print_out(newline, 1);
 	
