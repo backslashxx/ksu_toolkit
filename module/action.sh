@@ -28,5 +28,7 @@ ksud feature set 0 "$original_sucompat_setting" > /dev/null 2>&1
 ksud feature set 2 "$original_sulog_setting" > /dev/null 2>&1
 ksud feature set 3 "$original_adbroot_setting" > /dev/null 2>&1
 
+echo "[+] benchmark finished!"
+
 sleep 20
 
