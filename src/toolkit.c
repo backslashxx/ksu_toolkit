@@ -166,7 +166,7 @@ static int toolkit_main(long argc, char **argv, char **envp)
 		char text_v2[] = "sym: ? uid: ?????? time: ??????????\n";
 		char *sulog_buf = sp;
 
-		struct sulog_entry_rcv_ptr sbuf = {0};
+		struct sulog_entry_rcv_ptr sbuf;
 		sbuf.index_ptr = (uint64_t)&sulog_index_next;
 		sbuf.buf_ptr = (uint64_t)sulog_buf;
 		sbuf.uptime_ptr = (uint64_t)&sulog_uptime;
