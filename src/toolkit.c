@@ -164,16 +164,16 @@ static int toolkit_main(long argc, char **argv, char **envp)
 		uint32_t sulog_uptime = 0;
 		char uptime_text[] = "uptime: ??????????\n";
 		char text_v2[] = "sym: ? uid: ?????? time: ??????????\n";
-		char *sulog_buf = toolkit_malloc(SULOG_BUFSIZ);
+		char *sulog_buf = sp;
 
-		struct sulog_entry_rcv_ptr *sbuf = (struct sulog_entry_rcv_ptr *)sp;
-		sbuf->index_ptr = (uint64_t)&sulog_index_next;
-		sbuf->buf_ptr = (uint64_t)sulog_buf;
-		sbuf->uptime_ptr = (uint64_t)&sulog_uptime;
+		struct sulog_entry_rcv_ptr sbuf = {0};
+		sbuf.index_ptr = (uint64_t)&sulog_index_next;
+		sbuf.buf_ptr = (uint64_t)sulog_buf;
+		sbuf.uptime_ptr = (uint64_t)&sulog_uptime;
 
-		ksu_sys_reboot(GET_SULOG_DUMP_V2, 0, (long)sbuf);
+		ksu_sys_reboot(GET_SULOG_DUMP_V2, 0, (long)&sbuf);
 
-		if (*(uintptr_t *)sbuf != (uintptr_t)sbuf)
+		if (*(uintptr_t *)&sbuf != (uintptr_t)&sbuf)
 			goto fail;
 
 		// sulog_index_next is the oldest entry!
