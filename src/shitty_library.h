@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <errno.h>
 
 #include <sys/ioctl.h>
 #include <ctype.h>

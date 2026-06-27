@@ -139,6 +139,12 @@ static int bench_main()
 	else
 		print_out(seccomp_disabled, sizeof(seccomp_disabled) - 1 );
 
+	// test faccessat2
+	bool has_faccessat2 = true;
+	long probe = __syscall(SYS_faccessat2, AT_FDCWD, (long)"/dev/null", F_OK, 0, NULL, NULL);
+	if (probe == -ENOSYS)
+		has_faccessat2 = false;
+
 	print_out(extra_lines, sizeof(extra_lines) - 1 );
 
 	const void *nothing = nullptr;
@@ -173,11 +179,15 @@ skip_setresuid:
 
 start_loop:
 	box_template[1] = 49 + j; // off by one, array starts with 0, humans count with 1
-    
+
+	run_bench(SYS_execve, (long)tests[j], NULL, NULL, NONE, NONE, NONE, "execve:      ");
 	run_bench(SYS_newfstatat, AT_FDCWD, (long)tests[j], (long)&st, AT_SYMLINK_NOFOLLOW, NONE, NONE, "newfstatat:  ");
 	run_bench(SYS_faccessat, AT_FDCWD, (long)tests[j], F_OK, NONE, NONE, NONE, "faccessat:   ");
-	run_bench(SYS_execve, (long)tests[j], NULL, NULL, NONE, NONE, NONE, "execve:      ");
-    
+
+	if (has_faccessat2)
+		run_bench(SYS_faccessat2, AT_FDCWD, (long)tests[j], F_OK, 0, NONE, NONE, "faccessat2:  ");
+
+
 	print_out(newline, 1);
 	
 	j++;
