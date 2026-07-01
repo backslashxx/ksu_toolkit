@@ -134,10 +134,18 @@ static int bench_main()
 {
 	bool is_seccomp_enabled = check_seccomp();
 
-	// Pin to core 0 for consistency
-	cpu_set_t cpuset = {};
+	// try to pin core 7, this normally is within the "big" cluster
+	cpu_set_t cpuset = { 0 };
+	CPU_SET(7, &cpuset);
+	if (!__syscall(SYS_sched_setaffinity, 0, sizeof(cpuset), &cpuset, NONE, NONE, NONE))
+		goto setpriority;
+
+	CPU_ZERO(&cpuset);
 	CPU_SET(0, &cpuset);
+	// fallback to core 0, all devices have this duh
 	__syscall(SYS_sched_setaffinity, 0, sizeof(cpuset), &cpuset, NONE, NONE, NONE);
+
+setpriority:
 	__syscall(SYS_setpriority, 0, 0, -20, NONE, NONE, NONE);
 
 	struct stat st;
