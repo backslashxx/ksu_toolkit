@@ -3,6 +3,21 @@
 #define N_ITERATIONS 1000000
 #define N_ITERATIONS_DIGITS 7
 
+const char extra_lines[] = 
+	"[!] tests:\n"
+	"[1] NULL\n"
+	"[2] /dev/null\n"
+	"[3] /system/bin/su_\n"
+	"[4] *unaligned*\n"
+	"[*] Lower is better\n";
+
+const char run_template[] = "[+] kernel: ";
+const char iter_template[] = "[+] iterations: ";
+char newline[] = "\n";
+char result_template[] = "(0000000 ns avg)\n";
+char box_template[] = "[ ] ";
+char sucompat_seccomp_template[] = "[+] sucompat: ? | seccomp: ? \n";
+
 __attribute__((always_inline))
 static bool check_seccomp() {
 	long pid = __syscall(SYS_clone, SIGCHLD, NULL, NULL, NULL, NULL, NULL);
@@ -106,9 +121,6 @@ static unsigned long long time_now_ns() {
 }
 #endif // __arm__
 
-char result_template[] = "(0000000 ns avg)\n";
-char box_template[] = "[ ] ";
-
 __attribute__((noinline))
 static void run_bench(long sc, long a1, long a2, long a3, long a4, long a5, long a6, char *template)
 {
@@ -153,24 +165,10 @@ setpriority:
 	struct new_utsname uname;
 	__syscall(SYS_uname, (long)&uname, NONE, NONE, NONE, NONE, NONE); // SYS_newuname on syscall table
 
-	char newline[] = "\n";
-
-	const char run_template[] = "[+] kernel: ";
-
 	// maybe writev
 	print_out(run_template, sizeof(run_template) - 1);
 	print_out(uname.release, strlen(uname.release));
 	print_out(newline, sizeof(newline) - 1 );
-
-	char sucompat_seccomp_template[] = "[+] sucompat: ? | seccomp: ? \n";
-
-	const char extra_lines[] = 
-		"[!] tests:\n"
-		"[1] NULL\n"
-		"[2] /dev/null\n"
-		"[3] /system/bin/su_\n"
-		"[4] *unaligned*\n"
-		"[*] Lower is better\n";
 
 	if (!__syscall(SYS_faccessat, AT_FDCWD, (long)"/system/bin/su", F_OK, NONE, NONE, NONE))
 		sucompat_seccomp_template[14] = 49;
@@ -185,7 +183,6 @@ setpriority:
 	print_out(sucompat_seccomp_template, sizeof(sucompat_seccomp_template) - 1 );
 
 	char iter_buf[N_ITERATIONS_DIGITS];
-	const char iter_template[] = "[+] iterations: ";
 	dumb_itoa(N_ITERATIONS, N_ITERATIONS_DIGITS, iter_buf);
 	print_out(iter_template, sizeof(iter_template) - 1);
 	print_out(iter_buf, N_ITERATIONS_DIGITS);

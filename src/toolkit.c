@@ -17,11 +17,11 @@ send:
 	return 0;
 }
 
-__attribute__((always_inline))
-static int toolkit_main(long argc, char **argv, char **envp)
-{
-	const char ok[] = { 'o', 'k', '\n'};
-	const char usage[] =
+char uptime_text[] = "uptime: ??????????\n";
+char text_v2[] = "sym: ? uid: ?????? time: ??????????\n";
+
+const char ok[] = { 'o', 'k', '\n'};
+const char usage[] =
 	"Usage:\n"
 	"./toolkit --bench\n"
 	"./toolkit --setuid <uid>\n"
@@ -33,6 +33,15 @@ static int toolkit_main(long argc, char **argv, char **envp)
 	"./toolkit --setflags <? uint>\n"
 	"./toolkit --fkuname \"6.18\" \"#0 SMP ...\"\n"
 	;
+
+char getinfo_buf_version[] = "ksuver: ??????\n";
+char getinfo_buf_flags[] = "flags: ??????\n";
+char getinfo_buf_features[] = "features: ??????\n";
+char getinfo_buf_uapiver[] = "uapi: ??????\n";
+
+__attribute__((always_inline))
+static int toolkit_main(long argc, char **argv, char **envp)
+{
 
 	unsigned int fd = 0;
 
@@ -51,7 +60,6 @@ static int toolkit_main(long argc, char **argv, char **envp)
 	if (!memcmp(&argv1[0], "--bench", sizeof("--bench")) && !argv2) {
 		bench_main();
 		return 0;
-
 	}
 
 	// --setuid
@@ -75,7 +83,6 @@ static int toolkit_main(long argc, char **argv, char **envp)
 		
 		print_out(ok, sizeof(ok));
 		return 0;
-
 	}
 
 	// --getuid
@@ -101,7 +108,6 @@ static int toolkit_main(long argc, char **argv, char **envp)
 
 		print_out(argv1, 6);
 		return 0;
-		
 	}
 
 	// --getlist
@@ -162,8 +168,7 @@ static int toolkit_main(long argc, char **argv, char **envp)
 	if (!memcmp(argv1, "--sulog", sizeof("--sulog")) && !argv2) {
 		uint32_t sulog_index_next;
 		uint32_t sulog_uptime = 0;
-		char uptime_text[] = "uptime: ??????????\n";
-		char text_v2[] = "sym: ? uid: ?????? time: ??????????\n";
+
 		char *sulog_buf = sp;
 
 		struct sulog_entry_rcv_ptr sbuf;
@@ -233,10 +238,6 @@ static int toolkit_main(long argc, char **argv, char **envp)
 
 	// --getinfo
 	if (!memcmp(&argv1[2], "getinfo", sizeof("getinfo"))) {
-		char buf_version[] = "ksuver: ??????\n";
-		char buf_flags[] = "flags: ??????\n";
-		char buf_features[] = "features: ??????\n";
-		char buf_uapiver[] = "uapi: ??????\n";
 
 		ksu_sys_reboot(KSU_INSTALL_MAGIC2, 0, (long)&fd);
 		if (!fd)
@@ -255,20 +256,19 @@ static int toolkit_main(long argc, char **argv, char **envp)
 				goto fail;
 		}			
 
-		dumb_itoa(cmd->version, 6, &buf_version[8]);
-		print_out(buf_version, sizeof(buf_version) - 1);
+		dumb_itoa(cmd->version, 6, &getinfo_buf_version[8]);
+		print_out(getinfo_buf_version, sizeof(getinfo_buf_version) - 1);
 
-		dumb_itoa(cmd->flags, 6, &buf_flags[7]);
-		print_out(buf_flags, sizeof(buf_flags) - 1);
+		dumb_itoa(cmd->flags, 6, &getinfo_buf_flags[7]);
+		print_out(getinfo_buf_flags, sizeof(getinfo_buf_flags) - 1);
 
-		dumb_itoa(cmd->features, 6, &buf_features[10]);
-		print_out(buf_features, sizeof(buf_features) - 1);
+		dumb_itoa(cmd->features, 6, &getinfo_buf_features[10]);
+		print_out(getinfo_buf_features, sizeof(getinfo_buf_features) - 1);
 
-		dumb_itoa(cmd->uapi_version, 6, &buf_uapiver[6]);
-		print_out(buf_uapiver, sizeof(buf_uapiver) - 1);
+		dumb_itoa(cmd->uapi_version, 6, &getinfo_buf_uapiver[6]);
+		print_out(getinfo_buf_uapiver, sizeof(getinfo_buf_uapiver) - 1);
 
 		return 0;
-
 	}
 
 	// --spoof-uname
