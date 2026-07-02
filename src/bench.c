@@ -151,6 +151,12 @@ static int bench_main()
 	CPU_SET(7, &cpuset);
 	if (!__syscall(SYS_sched_setaffinity, 0, sizeof(cpuset), &cpuset, NONE, NONE, NONE))
 		goto setpriority;
+	
+	// for 4 + 2 chips like sd808
+	CPU_ZERO(&cpuset);
+	CPU_SET(5, &cpuset);
+	if (!__syscall(SYS_sched_setaffinity, 0, sizeof(cpuset), &cpuset, NONE, NONE, NONE))
+		goto setpriority;
 
 	CPU_ZERO(&cpuset);
 	CPU_SET(0, &cpuset);
