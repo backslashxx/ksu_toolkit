@@ -11,6 +11,8 @@ const char extra_lines[] =
 	"[4] *unaligned*\n"
 	"[*] Lower is better\n";
 
+const char *devnull = "/dev/null";
+
 const char run_template[] = "[+] kernel: ";
 const char iter_template[] = "[+] iterations: ";
 char newline[] = "\n";
@@ -22,11 +24,11 @@ static long payload_swapoff() {
 	return __syscall(SYS_swapoff, NULL, NONE, NONE, NONE, NONE, NONE);
 }
 
-static long payload_faccessat2() {
-	const char *devnull = "/dev/null";
+#if defined(__aarch64__)
+static long payload_faccessat2() {	
 	return __syscall(SYS_faccessat2, AT_FDCWD, (long)devnull, F_OK, 0, NONE, NONE);
 }
-
+#endif
 
 __attribute__((noinline))
 static bool run_forked_payload(long (*payload_fn)())
@@ -138,6 +140,10 @@ static bool affine_to_cpu(int cpu)
 __attribute__((always_inline))
 static int bench_main()
 {
+	// check extra access syscalls, SYS_faccessat2 (aarch64)
+#if defined(__aarch64__)
+	bool has_access_sc = run_forked_payload(payload_faccessat2);
+#endif
 	bool is_seccomp_enabled = !run_forked_payload(payload_swapoff);
 
 	// try to pin core 7, this normally is within the "big" cluster
@@ -183,7 +189,6 @@ setpriority:
 	print_out(newline, sizeof(newline) - 1 );
 
 	const void *nothing = nullptr;
-	const char *devnull = "/dev/null";
 	const char *notsu = "/system/bin/su_";
 	const char *unaligned = notsu + 3;
 
@@ -191,23 +196,6 @@ setpriority:
 
 	print_out(newline, sizeof(newline) - 1 );
 
-	bool is_root = !!!__syscall(SYS_getuid, NONE, NONE, NONE, NONE, NONE, NONE);
-
-	// check extra access syscalls, SYS_faccessat2 (aarch64)
-	bool has_access_sc = run_forked_payload(payload_faccessat2);
-
-	if (is_root)
-		goto skip_setresuid;
-
-#if defined(__arm__) 
-#define SYS_setresuid16 164
-	run_bench(SYS_setresuid16, 10000, 10000, 10000, NONE, NONE, NONE, "setresuid16: ");
-#endif
-
-	run_bench(SYS_setresuid, 10000, 10000, 10000, NONE, NONE, NONE, "setresuid:   ");
-	print_out(newline, sizeof(newline) - 1 );
-
-skip_setresuid:
 	const void *tests[] = {
 		nothing,
 		devnull,
@@ -229,9 +217,12 @@ start_loop:
 	run_bench(SYS_newfstatat, AT_FDCWD, (long)tests[j], (long)&st, AT_SYMLINK_NOFOLLOW, NONE, NONE, "newfstatat:  ");
 	run_bench(SYS_faccessat, AT_FDCWD, (long)tests[j], F_OK, NONE, NONE, NONE, "faccessat:   ");
 
+#if defined(__aarch64__)
 	if (has_access_sc)
 		run_bench(SYS_faccessat2, AT_FDCWD, (long)tests[j], F_OK, 0, NONE, NONE, "faccessat2:  ");
-
+#else
+	run_bench(SYS_access, (long)tests[j], F_OK, NONE, NONE, NONE, NONE, "access:      ");
+#endif
 
 	print_out(newline, 1);
 	
