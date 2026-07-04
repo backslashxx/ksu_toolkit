@@ -206,7 +206,7 @@ static int bench_main()
 	else
 		sucompat_seccomp_root_template[27] = 48;
 
-	print_out(sucompat_seccomp_root_template, sizeof(sucompat_seccomp_root_template));
+	print_out(sucompat_seccomp_root_template, sizeof(sucompat_seccomp_root_template) - 1);
 
 	const char *str_yes_no = "yes\nno\n";
 	if (is_root)
