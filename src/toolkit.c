@@ -1,22 +1,3 @@
-__attribute__((always_inline))
-static int toolkit_ksu_override_common(long cmdtype, char *restrict argv2, void *restrict sp){
-
-	int override = 0;
-	if (!argv2)
-		goto send;
-
-	override = dumb_atoi(argv2);
-	if (!override)
-		return 1;
-		
-send:
-	ksu_sys_reboot(cmdtype, override, (long)sp);
-	if ( *(uintptr_t *)sp != (uintptr_t)sp )
-		return 1;
-	
-	return 0;
-}
-
 char uptime_text[] = "uptime: ??????????\n";
 char text_v2[] = "sym: ? uid: ?????? time: ??????????\n";
 
@@ -40,10 +21,30 @@ char getinfo_buf_features[] = "features: ??????\n";
 char getinfo_buf_uapiver[] = "uapi: ??????\n";
 
 __attribute__((always_inline))
+static int toolkit_ksu_override_common(long cmdtype, char *restrict argv2, void *restrict sp){
+
+	int override = 0;
+	if (!argv2)
+		goto send;
+
+	override = dumb_atoi(argv2);
+	if (!override)
+		return 1;
+		
+send:
+	ksu_sys_reboot(cmdtype, override, (long)sp);
+	if ( *(uintptr_t *)sp != (uintptr_t)sp )
+		return 1;
+	
+	return 0;
+}
+
+__attribute__((always_inline))
 static int toolkit_main(long argc, char **argv, char **envp)
 {
 
 	unsigned int fd = 0;
+	int ret;
 
 	// use once needed, for -Oz atleast, these are put to registers anyway
 	// register char *argv1 __asm__("x19") = argv[1];
@@ -57,236 +58,244 @@ static int toolkit_main(long argc, char **argv, char **envp)
 		goto show_usage;
 
 	// --bench
-	if (!memcmp(&argv1[0], "--bench", sizeof("--bench")) && !argv2) {
-		bench_main();
-		return 0;
-	}
+	if (!memcmp(&argv1[0], "--bench", sizeof("--bench")) && !argv2)
+		goto run_benchmark;
 
 	// --setuid
-	if (!memcmp(&argv1[1], "-setuid", sizeof("-setuid")) && !!argv2 && !!argv2[4] && !argv[3]) {
-		
-		unsigned int cmd = dumb_atoi(argv2) % 100000;
-		if (!cmd)
-			goto fail;
-
-		if (!(cmd > 10000 && cmd < 20000))
-			goto fail;
-
-		// yeah we reuse argv1 as buffer		
-		ksu_sys_reboot(CHANGE_MANAGER_UID, cmd, (long)sp);
-
-		// all we need is just somethign writable that is atleast uintptr_t wide
-		// since *sp is long as that is our argc, this will fit platform's uintptr_t
-		// while being properly aligned and passing ubsan
-		if (*(uintptr_t *)sp != (uintptr_t)sp )
-			goto fail;
-		
-		print_out(ok, sizeof(ok));
-		return 0;
-	}
-
+	if (!memcmp(&argv1[1], "-setuid", sizeof("-setuid")) && !!argv2 && !!argv2[4] && !argv[3])
+		goto toolkit_setuid;
+	
 	// --getuid
-	if (!memcmp(&argv1[1], "-getuid", sizeof("-getuid")) && !argv2) {
-		
-		// we dont care about closing the fd, it gets released on exit automatically
-		ksu_sys_reboot(KSU_INSTALL_MAGIC2, 0, (long)&fd);
-		if (!fd)
-			goto fail;
-
-		struct ksu_get_manager_uid_cmd *cmd = (struct ksu_get_manager_uid_cmd *)sp;
-		int ret = sys_ioctl(fd, KSU_IOCTL_GET_MANAGER_UID, (long)cmd);
-		if (ret)
-			goto fail;
-
-		if (!(cmd->uid > 10000 && cmd->uid < 20000))
-			goto fail;
-
-		// yeah we reuse argv1 as our buffer
-		// this one is really just for a buffer/scratchpad
-		dumb_itoa(cmd->uid, 5, argv1);
-		argv1[5] = '\n';
-
-		print_out(argv1, 6);
-		return 0;
-	}
+	if (!memcmp(&argv1[1], "-getuid", sizeof("-getuid")) && !argv2)
+		goto toolkit_getuid;
 
 	// --getlist
-	if (!memcmp(&argv1[2], "getlist", sizeof("getlist")) && !argv2) {
-		uint32_t total_size;
+	if (!memcmp(&argv1[2], "getlist", sizeof("getlist")) && !argv2) 
+		goto toolkit_getlist;
 
-		ksu_sys_reboot(KSU_INSTALL_MAGIC2, 0, (long)&fd);
-		if (!fd)
-			goto fail;
-
-		struct ksu_add_try_umount_cmd cmd = {0};
-		cmd.arg = (uint64_t)&total_size;
-		// cmd.flags = 0;
-		cmd.mode = KSU_UMOUNT_GETSIZE;
-
-		int ret = sys_ioctl(fd, KSU_IOCTL_ADD_TRY_UMOUNT, (long)&cmd);
-		if (ret < 0)
-			goto fail;
-
-		if (!total_size)
-			goto list_empty;
-
-		// now we can prepare some memory
-		char *buffer = toolkit_malloc(total_size );
-		if (!buffer)
-			goto fail;
-
-		cmd.arg = (uint64_t)buffer;
-		// cmd.flags = 0;
-		cmd.mode = KSU_UMOUNT_GETLIST;
-
-		ret = sys_ioctl(fd, KSU_IOCTL_ADD_TRY_UMOUNT, (long)&cmd);
-		if (ret < 0)
-			goto fail;
-
-		// now we pointerwalk
-		char *char_buf = buffer;
-		int len;
-
-	bufwalk_start:
-		// get entry's string length first
-		len = strlen(char_buf);
-
-		// write a newline to it, basically replacing \0 with \n
-		*(char_buf + len) = '\n';
-
-		// walk the pointer
-		char_buf = char_buf + len + 1;
-
-		if (char_buf - buffer < total_size)
-			goto bufwalk_start;
-
-		print_out(buffer, total_size);
-
-		return 0;
-	}
-
-	if (!memcmp(argv1, "--sulog", sizeof("--sulog")) && !argv2) {
-		uint32_t sulog_index_next;
-		uint32_t sulog_uptime = 0;
-
-		char *sulog_buf = sp;
-
-		struct sulog_entry_rcv_ptr sbuf;
-		sbuf.index_ptr = (uint64_t)&sulog_index_next;
-		sbuf.buf_ptr = (uint64_t)sulog_buf;
-		sbuf.uptime_ptr = (uint64_t)&sulog_uptime;
-
-		ksu_sys_reboot(GET_SULOG_DUMP_V2, 0, (long)&sbuf);
-
-		if (*(uintptr_t *)&sbuf != (uintptr_t)&sbuf)
-			goto fail;
-
-		// sulog_index_next is the oldest entry!
-		// and sulog_index_next -1 is the newest entry
-		// we start listing from the oldest entry
-		int start = sulog_index_next;
-
-		int i = 0;
-		int idx;
-
-		dumb_itoa(sulog_uptime, 10, &uptime_text[8]);
-		print_out(uptime_text, sizeof(uptime_text));
-
-	sulog_loop_start:		
-		idx = (start + i) % SULOG_ENTRY_MAX; // modulus due to this overflowing entry_max
-		struct sulog_entry *entry_ptr = (struct sulog_entry *)(sulog_buf + idx * sizeof(struct sulog_entry) );
-
-		// make sure to check for symbol instead!
-		if (entry_ptr->sym) {
-			// now write symbol
-			text_v2[5] = entry_ptr->sym;
-			dumb_itoa(entry_ptr->uid, 6, &text_v2[12]);
-			dumb_itoa(entry_ptr->s_time, 10, &text_v2[25]);
-
-			print_out(text_v2, sizeof(text_v2) - 1 );
-		}
-
-		i++;
-
-		if (i < SULOG_ENTRY_MAX)
-			goto sulog_loop_start;
-
-		return 0;
-	}
+	// --sulog
+	if (!memcmp(argv1, "--sulog", sizeof("--sulog")) && !argv2)
+		goto toolkit_sulog;
 
 	// --setver
-	if (!memcmp(&argv1[1], "-setver", sizeof("-setver"))) {
-		int ret = toolkit_ksu_override_common(CHANGE_KSUVER, argv2, sp);
-		if (ret)
-			goto fail;
-
-		print_out(ok, sizeof(ok));
-		return 0;
-
-	}
+	if (!memcmp(&argv1[1], "-setver", sizeof("-setver")))
+		goto toolkit_setver;
 
 	// --setflags
-	if (!memcmp(&argv1[3], "etflags", sizeof("etflags"))) {
-		int ret = toolkit_ksu_override_common(CHANGE_KSUFLAGS, argv2, sp);
-		if (ret)
-			goto fail;
-
-		print_out(ok, sizeof(ok));
-		return 0;
-
-	}
+	if (!memcmp(&argv1[3], "etflags", sizeof("etflags")))
+		goto toolkit_setflags;
 
 	// --getinfo
-	if (!memcmp(&argv1[2], "getinfo", sizeof("getinfo"))) {
-
-		ksu_sys_reboot(KSU_INSTALL_MAGIC2, 0, (long)&fd);
-		if (!fd)
-			goto fail;
-
-		// handles ksu_get_info compat, legacy and one with uapi ver
-		// what we can do is to just prepare 4x u32 space (ksu_get_info_cmd) then act accordingly
-		struct ksu_get_info_cmd *cmd = (struct ksu_get_info_cmd *)sp;
-		cmd->uapi_version = 0;
-
-		int ret = sys_ioctl(fd, KSU_IOCTL_GET_INFO, (long)cmd);
-		if (ret) {
-			// if new ioctl fails, we try again, this time trying legacy
-			ret = sys_ioctl(fd, KSU_IOCTL_GET_INFO_LEGACY, (long)cmd);
-			if (ret)
-				goto fail;
-		}			
-
-		dumb_itoa(cmd->version, 6, &getinfo_buf_version[8]);
-		print_out(getinfo_buf_version, sizeof(getinfo_buf_version) - 1);
-
-		dumb_itoa(cmd->flags, 6, &getinfo_buf_flags[7]);
-		print_out(getinfo_buf_flags, sizeof(getinfo_buf_flags) - 1);
-
-		dumb_itoa(cmd->features, 6, &getinfo_buf_features[10]);
-		print_out(getinfo_buf_features, sizeof(getinfo_buf_features) - 1);
-
-		dumb_itoa(cmd->uapi_version, 6, &getinfo_buf_uapiver[6]);
-		print_out(getinfo_buf_uapiver, sizeof(getinfo_buf_uapiver) - 1);
-
-		return 0;
-	}
+	if (!memcmp(&argv1[2], "getinfo", sizeof("getinfo")))
+		goto toolkit_getinfo;
 
 	// --spoof-uname
-	if (!memcmp(&argv1[2], "fkuname", sizeof("fkuname")) && argv2 && argv[3] && !argv[4]) {
+	if (!memcmp(&argv1[2], "fkuname", sizeof("fkuname")) && argv2 && argv[3] && !argv[4])
+		goto toolkit_fakeuname;
 
-		// here we pack argv2's address 
-		// basically so we can send it by reference
-		// while forcing a 64 bit width
-		*(uint64_t *)sp = (uint64_t)&argv2;
+	goto show_usage;
 
-		ksu_sys_reboot(CHANGE_SPOOF_UNAME, 0, (long)sp);
+run_benchmark:
+	return bench_main();
 
-		if ( *(uintptr_t *)sp != (uintptr_t)sp )
+toolkit_setuid:
+	unsigned int setuid_cmd = dumb_atoi(argv2) % 100000;
+	if (!setuid_cmd)
+		goto fail;
+
+	if (!(setuid_cmd > 10000 && setuid_cmd < 20000))
+		goto fail;
+
+	// yeah we reuse argv1 as buffer		
+	ksu_sys_reboot(CHANGE_MANAGER_UID, setuid_cmd, (long)sp);
+
+	// all we need is just somethign writable that is atleast uintptr_t wide
+	// since *sp is long as that is our argc, this will fit platform's uintptr_t
+	// while being properly aligned and passing ubsan
+	if (*(uintptr_t *)sp != (uintptr_t)sp )
+		goto fail;
+
+	print_out(ok, sizeof(ok));
+	return 0;
+
+toolkit_getuid:	
+	// we dont care about closing the fd, it gets released on exit automatically
+	ksu_sys_reboot(KSU_INSTALL_MAGIC2, 0, (long)&fd);
+	if (!fd)
+		goto fail;
+
+	struct ksu_get_manager_uid_cmd *getuid_cmd = (struct ksu_get_manager_uid_cmd *)sp;
+	ret = sys_ioctl(fd, KSU_IOCTL_GET_MANAGER_UID, (long)getuid_cmd);
+	if (ret)
+		goto fail;
+
+	if (!(getuid_cmd->uid > 10000 && getuid_cmd->uid < 20000))
+		goto fail;
+
+	// yeah we reuse argv1 as our buffer
+	// this one is really just for a buffer/scratchpad
+	dumb_itoa(getuid_cmd->uid, 5, argv1);
+	argv1[5] = '\n';
+
+	print_out(argv1, 6);
+	return 0;
+
+toolkit_getlist:
+	uint32_t total_size;
+
+	ksu_sys_reboot(KSU_INSTALL_MAGIC2, 0, (long)&fd);
+	if (!fd)
+		goto fail;
+
+	struct ksu_add_try_umount_cmd cmd = {0};
+	cmd.arg = (uint64_t)&total_size;
+	// cmd.flags = 0;
+	cmd.mode = KSU_UMOUNT_GETSIZE;
+
+	ret = sys_ioctl(fd, KSU_IOCTL_ADD_TRY_UMOUNT, (long)&cmd);
+	if (ret < 0)
+		goto fail;
+
+	if (!total_size)
+		goto list_empty;
+
+	// now we can prepare some memory
+	char *buffer = toolkit_malloc(total_size );
+	if (!buffer)
+		goto fail;
+
+	cmd.arg = (uint64_t)buffer;
+	// cmd.flags = 0;
+	cmd.mode = KSU_UMOUNT_GETLIST;
+
+	ret = sys_ioctl(fd, KSU_IOCTL_ADD_TRY_UMOUNT, (long)&cmd);
+	if (ret < 0)
+		goto fail;
+
+	// now we pointerwalk
+	char *char_buf = buffer;
+	int len;
+
+bufwalk_start:
+	// get entry's string length first
+	len = strlen(char_buf);
+
+	// write a newline to it, basically replacing \0 with \n
+	*(char_buf + len) = '\n';
+
+	// walk the pointer
+	char_buf = char_buf + len + 1;
+
+	if (char_buf - buffer < total_size)
+		goto bufwalk_start;
+
+	print_out(buffer, total_size);
+	return 0;
+
+toolkit_sulog:
+	uint32_t sulog_index_next;
+	uint32_t sulog_uptime = 0;
+
+	char *sulog_buf = sp;
+
+	struct sulog_entry_rcv_ptr sbuf;
+	sbuf.index_ptr = (uint64_t)&sulog_index_next;
+	sbuf.buf_ptr = (uint64_t)sulog_buf;
+	sbuf.uptime_ptr = (uint64_t)&sulog_uptime;
+
+	ksu_sys_reboot(GET_SULOG_DUMP_V2, 0, (long)&sbuf);
+
+	if (*(uintptr_t *)&sbuf != (uintptr_t)&sbuf)
+		goto fail;
+
+	// sulog_index_next is the oldest entry!
+	// and sulog_index_next -1 is the newest entry
+	// we start listing from the oldest entry
+	int start = sulog_index_next;
+
+	int i = 0;
+	int idx;
+
+	dumb_itoa(sulog_uptime, 10, &uptime_text[8]);
+	print_out(uptime_text, sizeof(uptime_text));
+
+sulog_loop_start:	
+	idx = (start + i) % SULOG_ENTRY_MAX; // modulus due to this overflowing entry_max
+	struct sulog_entry *entry_ptr = (struct sulog_entry *)(sulog_buf + idx * sizeof(struct sulog_entry) );
+
+	// make sure to check for symbol instead!
+	if (!entry_ptr->sym)
+		goto sulog_inc_offset;
+
+	text_v2[5] = entry_ptr->sym;
+	dumb_itoa(entry_ptr->uid, 6, &text_v2[12]);
+	dumb_itoa(entry_ptr->s_time, 10, &text_v2[25]);
+	print_out(text_v2, sizeof(text_v2) - 1 );
+
+sulog_inc_offset:
+	i++;
+
+	if (i < SULOG_ENTRY_MAX)
+		goto sulog_loop_start;
+
+	return 0;
+
+toolkit_setver:
+	ret = toolkit_ksu_override_common(CHANGE_KSUVER, argv2, sp);
+	if (ret)
+		goto fail;
+
+	print_out(ok, sizeof(ok));
+	return 0;
+
+toolkit_setflags:
+	ret = toolkit_ksu_override_common(CHANGE_KSUFLAGS, argv2, sp);
+	if (ret)
+		goto fail;
+
+	print_out(ok, sizeof(ok));
+	return 0;
+
+toolkit_getinfo:
+	ksu_sys_reboot(KSU_INSTALL_MAGIC2, 0, (long)&fd);
+	if (!fd)
+		goto fail;
+
+	// handles ksu_get_info compat, legacy and one with uapi ver
+	// what we can do is to just prepare 4x u32 space (ksu_get_info_cmd) then act accordingly
+	struct ksu_get_info_cmd *getinfo_cmd = (struct ksu_get_info_cmd *)sp;
+	getinfo_cmd->uapi_version = 0;
+
+	ret = sys_ioctl(fd, KSU_IOCTL_GET_INFO, (long)getinfo_cmd);
+	if (ret) {
+		// if new ioctl fails, we try again, this time trying legacy
+		ret = sys_ioctl(fd, KSU_IOCTL_GET_INFO_LEGACY, (long)getinfo_cmd);
+		if (ret)
 			goto fail;
+	}			
 
-		print_out(ok, sizeof(ok));
-		return 0;
-	}
+	dumb_itoa(getinfo_cmd->version, 6, &getinfo_buf_version[8]);
+	print_out(getinfo_buf_version, sizeof(getinfo_buf_version) - 1);
+
+	dumb_itoa(getinfo_cmd->flags, 6, &getinfo_buf_flags[7]);
+	print_out(getinfo_buf_flags, sizeof(getinfo_buf_flags) - 1);
+
+	dumb_itoa(getinfo_cmd->features, 6, &getinfo_buf_features[10]);
+	print_out(getinfo_buf_features, sizeof(getinfo_buf_features) - 1);
+
+	dumb_itoa(getinfo_cmd->uapi_version, 6, &getinfo_buf_uapiver[6]);
+	print_out(getinfo_buf_uapiver, sizeof(getinfo_buf_uapiver) - 1);
+	return 0;
+
+toolkit_fakeuname:
+	// here we pack argv2's address, so we can send it by reference, while forcing a 64 bit width
+	*(uint64_t *)sp = (uint64_t)&argv2;
+	ksu_sys_reboot(CHANGE_SPOOF_UNAME, 0, (long)sp);
+	if ( *(uintptr_t *)sp != (uintptr_t)sp )
+		goto fail;
+
+	print_out(ok, sizeof(ok));
+	return 0;
 
 show_usage:
 	print_err(usage, sizeof(usage) -1 );
