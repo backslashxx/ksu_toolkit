@@ -179,6 +179,17 @@ static int bench_main()
 	print_out(uname.release, strlen(uname.release));
 	print_out(newline, sizeof(newline) - 1 );
 
+	char iter_buf[N_ITERATIONS_DIGITS];
+	dumb_itoa(N_ITERATIONS, N_ITERATIONS_DIGITS, iter_buf);
+	print_out(iter_template, sizeof(iter_template) - 1);
+	print_out(iter_buf, N_ITERATIONS_DIGITS);
+
+	if (affine_ok) {
+		dumb_itoa(top_cpu_core, 2, cpu_core_template + 9);
+		print_out(cpu_core_template, sizeof(cpu_core_template) -1 );
+	} else
+		print_out(newline, sizeof(newline) - 1 );
+
 	if (!__syscall(SYS_faccessat, AT_FDCWD, (long)"/system/bin/su", F_OK, NONE, NONE, NONE))
 		sucompat_seccomp_root_template[14] = 49;
 	else
@@ -196,17 +207,6 @@ static int bench_main()
 		print_out(str_yes_no, 4 );
 	else
 		print_out(str_yes_no + 4, 3);
-
-	char iter_buf[N_ITERATIONS_DIGITS];
-	dumb_itoa(N_ITERATIONS, N_ITERATIONS_DIGITS, iter_buf);
-	print_out(iter_template, sizeof(iter_template) - 1);
-	print_out(iter_buf, N_ITERATIONS_DIGITS);
-
-	if (affine_ok) {
-		dumb_itoa(top_cpu_core, 2, cpu_core_template + 9);
-		print_out(cpu_core_template, sizeof(cpu_core_template) -1 );
-	} else
-		print_out(newline, sizeof(newline) - 1 );
 
 	const void *nothing = nullptr;
 	const char *notsu = "/system/bin/su_";
