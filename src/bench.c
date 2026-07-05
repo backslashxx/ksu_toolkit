@@ -24,6 +24,8 @@ char sucompat_seccomp_root_template[] = "[+] sucompat: ? | seccomp: ? | root: ";
 uint64_t total_avg = 0;
 char total_avg_template[] = "[+] total avgs:   000000000\n";
 
+cpu_set_t cpuset;
+
 static long payload_swapoff() {
 	return __syscall(SYS_swapoff, NULL, NONE, NONE, NONE, NONE, NONE);
 }
@@ -137,7 +139,6 @@ bench_start:
 __attribute__((always_inline))
 static int get_highest_cpu_core()
 {
-	cpu_set_t cpuset;
 	__syscall(SYS_sched_getaffinity, 0, sizeof(cpuset), &cpuset, NONE, NONE, NONE);
 
 	// we dont really have much cores on our targets, so first member is enough. assumes LE for core 0~31!
@@ -153,10 +154,8 @@ static int get_highest_cpu_core()
 __attribute__((always_inline))
 static bool affine_to_cpu(int cpu)
 {
-	cpu_set_t cpuset;
 	CPU_ZERO(&cpuset);
 	CPU_SET(cpu, &cpuset);
-
 	return !!!__syscall(SYS_sched_setaffinity, 0, sizeof(cpuset), &cpuset, NONE, NONE, NONE);
 }
 
@@ -171,7 +170,7 @@ static int bench_main()
 	bool is_root = !!!__syscall(SYS_getuid, NONE, NONE, NONE, NONE, NONE, NONE);
 
 	int top_cpu_core = get_highest_cpu_core();
-	bool affine_ok = affine_to_cpu(top_cpu_core);
+	affine_to_cpu(top_cpu_core);
 
 	__syscall(SYS_setpriority, 0, 0, -20, NONE, NONE, NONE);
 
@@ -190,11 +189,8 @@ static int bench_main()
 	print_out(iter_template, sizeof(iter_template) - 1);
 	print_out(iter_buf, N_ITERATIONS_DIGITS);
 
-	if (affine_ok) {
-		dumb_itoa(top_cpu_core, 2, cpu_core_template + 9);
-		print_out(cpu_core_template, sizeof(cpu_core_template) -1 );
-	} else
-		print_out(newline, sizeof(newline) - 1 );
+	dumb_itoa(top_cpu_core, 2, cpu_core_template + 9);
+	print_out(cpu_core_template, sizeof(cpu_core_template) -1 );
 
 	if (!__syscall(SYS_faccessat, AT_FDCWD, (long)"/system/bin/su", F_OK, NONE, NONE, NONE))
 		sucompat_seccomp_root_template[14] = 49;
