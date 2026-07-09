@@ -26,17 +26,12 @@ char total_avg_template[] = "[+] total avgs:   000000000\n";
 
 cpu_set_t cpuset;
 
-static long payload_swapoff() {
-	return __syscall(SYS_swapoff, NULL, NONE, NONE, NONE, NONE, NONE);
-}
-
 #if defined(__aarch64__)
 static long payload_faccessat2() {	
 	return __syscall(SYS_faccessat2, AT_FDCWD, (long)devnull, F_OK, 0, NONE, NONE);
 }
-#endif
 
-__attribute__((noinline))
+__attribute__((always_inline))
 static bool run_forked_payload(long (*payload_fn)())
 {
 	long pid = __syscall(SYS_clone, SIGCHLD, NULL, NULL, NULL, NULL, NULL);
@@ -65,6 +60,7 @@ main_thread:
 
 	return true;
 }
+#endif
 
 /**
  * NOTE: this might be actually slower now as this forces a syscall
@@ -166,7 +162,10 @@ static int bench_main()
 #if defined(__aarch64__)
 	bool has_access_sc = run_forked_payload(payload_faccessat2);
 #endif
-	bool is_seccomp_enabled = !run_forked_payload(payload_swapoff);
+
+#define PR_GET_SECCOMP	21
+	int seccomp_status = __syscall(SYS_prctl, PR_GET_SECCOMP, NONE, NONE, NONE, NONE, NONE);
+
 	bool is_root = !!!__syscall(SYS_getuid, NONE, NONE, NONE, NONE, NONE, NONE);
 
 	int top_cpu_core = get_highest_cpu_core();
@@ -197,10 +196,12 @@ static int bench_main()
 	else
 		sucompat_seccomp_root_template[14] = 48;
 
-	if (is_seccomp_enabled)
-		sucompat_seccomp_root_template[27] = 49;
-	else
-		sucompat_seccomp_root_template[27] = 48;
+	if (seccomp_status == 0)
+		sucompat_seccomp_root_template[27] = '0';
+	if (seccomp_status == 1)
+		sucompat_seccomp_root_template[27] = '1';
+	if (seccomp_status == 2)
+		sucompat_seccomp_root_template[27] = '2';
 
 	print_out(sucompat_seccomp_root_template, sizeof(sucompat_seccomp_root_template) - 1);
 
