@@ -87,6 +87,7 @@ start:
 	return;
 }
 
+#if 0
 /*
  *	toolkit_malloc
  *	brk() / sbrk() based memory alloc
@@ -107,6 +108,7 @@ static void *toolkit_malloc(unsigned long size)
 
 	return (void *)current_brk;
 }
+#endif
 
 /*
  *	print_out, print_err
