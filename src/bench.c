@@ -156,10 +156,9 @@ static bool affine_to_cpu(int cpu)
 }
 
 __attribute__((always_inline))
-static int bench_main()
+static int bench_main(char **argv)
 {
-	// check extra access syscalls, SYS_faccessat2 (aarch64)
-#if defined(__aarch64__)
+#if defined(__aarch64__) // check extra access syscalls, SYS_faccessat2 (aarch64)
 	bool has_access_sc = run_forked_payload(payload_faccessat2);
 #endif
 
@@ -168,8 +167,16 @@ static int bench_main()
 
 	bool is_root = !!!__syscall(SYS_getuid, NONE, NONE, NONE, NONE, NONE, NONE);
 
-	int top_cpu_core = get_highest_cpu_core();
-	affine_to_cpu(top_cpu_core);
+	int pinned_cpu_core;
+	if (argv[2]) {
+		// temp for now only accept one digit
+		if (argv[2][1])
+			argv[2][1] = '\0'; // cut it!
+		pinned_cpu_core = dumb_atoi(argv[2]);
+	} else 
+		pinned_cpu_core = get_highest_cpu_core();
+
+	affine_to_cpu(pinned_cpu_core);
 
 	__syscall(SYS_setpriority, 0, 0, -20, NONE, NONE, NONE);
 
@@ -188,7 +195,7 @@ static int bench_main()
 	print_out(iter_template, sizeof(iter_template) - 1);
 	print_out(iter_buf, N_ITERATIONS_DIGITS);
 
-	dumb_itoa(top_cpu_core, 2, cpu_core_template + 9);
+	dumb_itoa(pinned_cpu_core, 2, cpu_core_template + 9);
 	print_out(cpu_core_template, sizeof(cpu_core_template) -1 );
 
 	if (!__syscall(SYS_faccessat, AT_FDCWD, (long)"/system/bin/su", F_OK, NONE, NONE, NONE))

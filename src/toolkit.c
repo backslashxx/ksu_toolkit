@@ -5,7 +5,7 @@ const char ok[] = { 'o', 'k', '\n'};
 const char usage[] =
 	"Usage:\n"
 	"./toolkit\n"
-	"   --bench\n"
+	"   --bench <? cpu>\n"
 	"   --setuid <uid>\n"
 	"   --getuid\n"
 	"   --getlist\n"
@@ -59,7 +59,7 @@ static int toolkit_main(long argc, char **argv, char **envp)
 		goto show_usage;
 
 	// --bench
-	if (!memcmp(&argv1[0], "--bench", sizeof("--bench")) && !argv2)
+	if (!memcmp(&argv1[0], "--bench", sizeof("--bench")))
 		goto run_benchmark;
 
 	// --setuid
@@ -97,7 +97,7 @@ static int toolkit_main(long argc, char **argv, char **envp)
 	goto show_usage;
 
 run_benchmark:
-	return bench_main();
+	return bench_main(argv);
 
 toolkit_setuid:
 	unsigned int setuid_cmd = dumb_atoi(argv2) % 100000;
