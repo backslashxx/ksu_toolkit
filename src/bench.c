@@ -48,6 +48,9 @@ static int read_sysfs_freq(const char *path, int *len)
 
 	*len = n;
 
+	// debug
+	//__builtin_printf("len: %d buf: %s \n", *len, buf);
+
 	buf[n] = '\0';
 
 	/* Strip trailing newline so that dumb_atoi() works */
@@ -61,10 +64,13 @@ static int read_sysfs_freq(const char *path, int *len)
 __attribute__((always_inline))
 static long write_sysfs_freq(const char *path, int val, int *len)
 {
-	char *buf = toolkit_malloc(*len);
+	char buf[16];
 
 	dumb_itoa((unsigned long)val, *len - 1, buf);
 	buf[*len] = '\n';
+
+	// debug
+	//__builtin_printf("len: %d buf: %s \n", *len, buf);
 
 	long fd = __syscall(SYS_openat, AT_FDCWD, (long)path, O_WRONLY, NONE, NONE, NONE);
 	if (fd < 0)
@@ -242,10 +248,9 @@ static int bench_main(char **argv)
 	dumb_itoa(pinned_cpu_core, 1, freq_path + 27);
 
 	int max_freq = 0;
-	int max_freq_len = 0;
+	int max_freq_len = 0; // includes newline
 	int min_freq = 0;
-	int min_freq_len = 0;
-
+	int min_freq_len = 0; // includes newline
 	bool freq_pinned = false;
 
 	if (!is_root)
