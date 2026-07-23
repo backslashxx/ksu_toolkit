@@ -54,7 +54,7 @@ static int read_sysfs_freq(const char *path, int *len)
 	buf[n] = '\0';
 
 	/* Strip trailing newline so that dumb_atoi() works */
-	if (n > 0 && buf[n - 1] == '\n')
+	if (buf[n - 1] == '\n')
 		buf[n - 1] = '\0';
 
 	return dumb_atoi(buf);
@@ -254,11 +254,11 @@ static int bench_main(char **argv)
 	bool freq_pinned = false;
 
 	if (!is_root)
-		goto no_freq_pin;
+		goto skip_freq_pin;
 	
 	min_freq = read_sysfs_freq(freq_path, &min_freq_len);
 	if (!min_freq)
-		goto no_freq_pin;
+		goto skip_freq_pin;
 
 	/* Flip min to max freq by modifying the string index */
 	freq_path[46] = 'a';
@@ -266,19 +266,13 @@ static int bench_main(char **argv)
 
 	max_freq = read_sysfs_freq(freq_path, &max_freq_len);
 	if (!max_freq)
-		goto no_freq_pin;
+		goto skip_freq_pin;
 
 	/* Now we're at scaling_max_freq. Write the min_freq to it */
 	freq_pinned = (write_sysfs_freq(freq_path, min_freq, &min_freq_len) == min_freq_len - 1);
-	if (!freq_pinned)
-		goto no_freq_pin;
-	
-	goto has_freq_pin;
 
-no_freq_pin:	
-	print_out(no_freq_pin_template, sizeof(no_freq_pin_template) - 1);
-
-has_freq_pin:
+skip_freq_pin:
+	;
 	struct stat st;
 
 	struct new_utsname uname;
@@ -308,12 +302,15 @@ has_freq_pin:
 		sucompat_seccomp_root_template[27] = '2';
 
 	print_out(sucompat_seccomp_root_template, sizeof(sucompat_seccomp_root_template) - 1);
-
+	
 	const char *str_yes_no = "yes\nno\n";
 	if (is_root)
 		print_out(str_yes_no, 4 );
 	else
 		print_out(str_yes_no + 4, 3);
+
+	if (!freq_pinned)
+		print_out(no_freq_pin_template, sizeof(no_freq_pin_template) - 1);
 
 	const void *nothing = nullptr;
 	const char *notsu = "/system/bin/su_";
