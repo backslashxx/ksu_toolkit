@@ -15,7 +15,7 @@ const char *devnull = "/dev/null";
 
 const char run_template[] = "[+] kernel: ";
 const char iter_template[] = "[+] iterations: ";
-const char no_freq_pin_template[] = "[x] no root, freq not pinned\n";
+const char no_freq_pin_template[] = "[x] freq not pinned\n";
 char cpu_core_template[] = " | core: ??\n";
 char newline[] = "\n";
 char result_template[] = "(0000000 ns avg)\n";
@@ -258,7 +258,7 @@ static int bench_main(char **argv)
 		goto skip_freq_pin;
 	
 	min_freq = read_sysfs_freq(freq_path, &min_freq_len);
-	if (!min_freq)
+	if (min_freq == -1)
 		goto skip_freq_pin;
 
 	/* Flip min to max freq by modifying the string index */
@@ -266,7 +266,7 @@ static int bench_main(char **argv)
 	freq_path[47] = 'x';
 
 	max_freq = read_sysfs_freq(freq_path, &max_freq_len);
-	if (!max_freq)
+	if (max_freq == -1)
 		goto skip_freq_pin;
 
 	/* Now we're at scaling_max_freq. Write the min_freq to it */
@@ -303,7 +303,7 @@ skip_freq_pin:
 		sucompat_seccomp_root_template[27] = '2';
 
 	print_out(sucompat_seccomp_root_template, sizeof(sucompat_seccomp_root_template) - 1);
-	
+
 	const char *str_yes_no = "yes\nno\n";
 	if (is_root)
 		print_out(str_yes_no, 4 );
