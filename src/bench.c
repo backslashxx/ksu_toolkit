@@ -21,6 +21,7 @@ char newline[] = "\n";
 char result_template[] = "(0000000 ns avg)\n";
 char box_template[] = "[ ] ";
 char sucompat_seccomp_root_template[] = "[+] sucompat: 0 | seccomp: ? | root: ";
+char freq_mhz_template[] = "[+] freq: 0000000 kHz\n";
 
 uint64_t total_avg = 0;
 char total_avg_template[] = "[+] total avgs:   000000000\n";
@@ -309,7 +310,11 @@ skip_freq_pin:
 	else
 		print_out(str_yes_no + 4, 3);
 
-	if (!freq_pinned)
+	if (freq_pinned) {
+		// raise that 7 once we get 10GHz cpus
+		dumb_itoa(min_freq, 7, freq_mhz_template + 10);
+		print_out(freq_mhz_template, sizeof(freq_mhz_template) - 1);
+	} else
 		print_out(no_freq_pin_template, sizeof(no_freq_pin_template) - 1);
 
 	const void *nothing = nullptr;
