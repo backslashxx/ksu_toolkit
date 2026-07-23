@@ -62,22 +62,22 @@ static int read_sysfs_freq(const char *path, int *len)
 
 /* Write one int to sysfs */
 __attribute__((always_inline))
-static long write_sysfs_freq(const char *path, int val, int *len)
+static long write_sysfs_freq(const char *path, int val, int len)
 {
 	char buf[16];
 
-	dumb_itoa((unsigned long)val, *len - 1, buf);
-	buf[*len] = '\n';
+	dumb_itoa((unsigned long)val, len - 1, buf);
+	buf[len] = '\n';
 
 	// debug
-	//__builtin_printf("len: %d buf: %s \n", *len, buf);
+	//__builtin_printf("len: %d buf: %s \n", len, buf);
 
 	long fd = __syscall(SYS_openat, AT_FDCWD, (long)path, O_WRONLY, NONE, NONE, NONE);
 	if (fd < 0)
 		return -1;
 
 	/* We leak fd here since OS will handle the cleanup */
-	return __syscall(SYS_write, fd, (long)buf, *len - 1, NONE, NONE, NONE);
+	return __syscall(SYS_write, fd, (long)buf, len - 1, NONE, NONE, NONE);
 }
 
 #if defined(__aarch64__)
@@ -269,7 +269,7 @@ static int bench_main(char **argv)
 		goto skip_freq_pin;
 
 	/* Now we're at scaling_max_freq. Write the min_freq to it */
-	freq_pinned = (write_sysfs_freq(freq_path, min_freq, &min_freq_len) == min_freq_len - 1);
+	freq_pinned = (write_sysfs_freq(freq_path, min_freq, min_freq_len) == min_freq_len - 1);
 
 skip_freq_pin:
 	;
@@ -360,7 +360,7 @@ start_loop:
 
 	/* Restore original max freq if we pinned it */
 	if (freq_pinned)
-		write_sysfs_freq(freq_path, max_freq, &max_freq_len);
+		write_sysfs_freq(freq_path, max_freq, max_freq_len);
 
 	return 0;
 }
