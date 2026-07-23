@@ -15,6 +15,7 @@ const char *devnull = "/dev/null";
 
 const char run_template[] = "[+] kernel: ";
 const char iter_template[] = "[+] iterations: ";
+const char no_freq_pin_template[] = "[x] no root, freq not pinned\n";
 char cpu_core_template[] = " | core: ??\n";
 char newline[] = "\n";
 char result_template[] = "(0000000 ns avg)\n";
@@ -24,7 +25,53 @@ char sucompat_seccomp_root_template[] = "[+] sucompat: 0 | seccomp: ? | root: ";
 uint64_t total_avg = 0;
 char total_avg_template[] = "[+] total avgs:   000000000\n";
 
+/* Initial placeholder freq path to manipulate CPU-id and its max freq */
+char freq_path[] = "/sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq";
+
 cpu_set_t cpuset;
+
+/* Read one int from sysfs */
+__attribute__((always_inline))
+static int read_sysfs_freq(const char *path)
+{
+	char buf[9];
+
+	long fd = __syscall(SYS_openat, AT_FDCWD, (long)path, O_RDONLY, NONE, NONE, NONE);
+	if (fd < 0)
+		return -1;
+
+	long n = __syscall(SYS_read, fd, (long)buf, 8, NONE, NONE, NONE);
+
+	/* We leak fd here since OS will handle the cleanup */
+
+	if (n <= 0)
+		return -1;
+
+	buf[n] = '\0';
+
+	/* Strip trailing newline so that dumb_atoi() works */
+	if (n > 0 && buf[n - 1] == '\n')
+		buf[n - 1] = '\0';
+
+	return dumb_atoi(buf);
+}
+
+/* Write one int to sysfs */
+__attribute__((always_inline))
+static long write_sysfs_freq(const char *path, int val)
+{
+	char buf[9];
+
+	dumb_itoa((unsigned long)val, 7, buf);
+	buf[7] = '\n';
+
+	long fd = __syscall(SYS_openat, AT_FDCWD, (long)path, O_WRONLY, NONE, NONE, NONE);
+	if (fd < 0)
+		return -1;
+
+	/* We leak fd here since OS will handle the cleanup */
+	return __syscall(SYS_write, fd, (long)buf, 8, NONE, NONE, NONE);
+}
 
 #if defined(__aarch64__)
 static long payload_faccessat2() {	
@@ -180,6 +227,38 @@ static int bench_main(char **argv)
 
 	__syscall(SYS_setpriority, 0, 0, -20, NONE, NONE, NONE);
 
+	/*
+	 * Patch cpu id into the sysfs path in-place.
+	 * e.g:
+	 * freq_path = "/sys/devices/system/cpu/cpuX/cpufreq/scaling_min_freq"
+	 *                                         ^ offset 27
+	 *
+	 * So, at index 27, we reach the CPU we wanna modify the max freq for,
+	 * which is 1-digit.
+	 *
+	 * Set the max freq to min freq during benchmarking.
+	 */
+	dumb_itoa(pinned_cpu_core, 1, freq_path + 27);
+
+	int orig_max_freq = 0;
+	bool freq_pinned = false;
+
+	if (is_root) {
+		int min_freq = read_sysfs_freq(freq_path);
+
+		/* Flip min to max freq by modifying the string index */
+		freq_path[46] = 'a';
+		freq_path[47] = 'x';
+
+		orig_max_freq = read_sysfs_freq(freq_path);
+
+		/* Now we're at scaling_max_freq. Write the min_freq to it */
+		if (min_freq > 0 && orig_max_freq > 0)
+			freq_pinned = (write_sysfs_freq(freq_path, min_freq) == 8);
+	} else {
+		print_err(no_freq_pin_template, sizeof(no_freq_pin_template) - 1);
+	}
+
 	struct stat st;
 
 	struct new_utsname uname;
@@ -261,6 +340,10 @@ start_loop:
 
 	dumb_itoa(total_avg, 9, total_avg_template + 18);
 	print_out(total_avg_template, sizeof(total_avg_template) - 1);
+
+	/* Restore original max freq if we pinned it */
+	if (freq_pinned)
+		write_sysfs_freq(freq_path, orig_max_freq);
 
 	return 0;
 }
