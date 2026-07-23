@@ -11,6 +11,11 @@ CPUFREQ_DIR="/sys/devices/system/cpu/cpu$HIGHEST_CPU/cpufreq"
 MAX_FREQ_NODE="$CPUFREQ_DIR/scaling_max_freq"
 MIN_FREQ_NODE="$CPUFREQ_DIR/scaling_min_freq"
 
+# last_cpu=$(expr $(busybox nproc) - 1 )
+# get_highest_freq=$(cat /sys/devices/system/cpu/cpu"$HIGHEST_CPU"/cpufreq/scaling_available_frequencies | busybox rev | cut -f2 -d " " | busybox rev)
+lowest_freq=$(cat /sys/devices/system/cpu/cpu"$HIGHEST_CPU"/cpufreq/scaling_available_frequencies | cut -f1 -d " ")
+original_octal_perm=$(busybox stat -c '%a' /sys/devices/system/cpu/cpu"$HIGHEST_CPU"/cpufreq/scaling_max_freq)
+
 # grab old setting
 original_sucompat_setting=$(ksud feature get 0 | grep "Value" | awk {'print $2'})
 original_adbroot_setting=$(ksud feature get 3 | grep "Value" | awk {'print $2'})
@@ -18,8 +23,9 @@ original_sulog_setting=$(ksud feature get 2 | grep "Value" | awk {'print $2'})
 original_max_freq=$(cat "$MAX_FREQ_NODE")
 
 # set the highest CPU to its lowest available freq
-lowest_freq=$(cat "MIN_FREQ_NODE")
+busybox chmod +w "$MAX_FREQ_NODE"
 echo "$lowest_freq" > "$MAX_FREQ_NODE"
+busybox chmod 444 "$MAX_FREQ_NODE"
 
 # disable sulog and adb root
 ksud feature set 2 0 > /dev/null 2>&1
@@ -28,15 +34,17 @@ ksud feature set 3 0 > /dev/null 2>&1
 # enable sucompat
 ksud feature set 0 1 > /dev/null 2>&1
 
-"$MODDIR/toolkit" --bench
+"$MODDIR/toolkit" --bench "$HIGHEST_CPU"
 
 echo ""
 
 ksud feature set 0 0 > /dev/null 2>&1
-"$MODDIR/toolkit" --bench
+"$MODDIR/toolkit" --bench "$HIGHEST_CPU"
 
 # restore original highest CPU's max freq
+busybox chmod +w "$MAX_FREQ_NODE"
 echo "$original_max_freq" > "$MAX_FREQ_NODE"
+busybox chmod "$original_octal_perm" "$MAX_FREQ_NODE"
 
 ksud feature set 0 "$original_sucompat_setting" > /dev/null 2>&1
 ksud feature set 2 "$original_sulog_setting" > /dev/null 2>&1
