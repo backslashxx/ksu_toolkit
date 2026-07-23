@@ -32,20 +32,21 @@ cpu_set_t cpuset;
 
 /* Read one int from sysfs */
 __attribute__((always_inline))
-static int read_sysfs_freq(const char *path)
+static int read_sysfs_freq(const char *path, int *len)
 {
-	char buf[9];
+	char buf[16];
 
 	long fd = __syscall(SYS_openat, AT_FDCWD, (long)path, O_RDONLY, NONE, NONE, NONE);
 	if (fd < 0)
 		return -1;
 
-	long n = __syscall(SYS_read, fd, (long)buf, 8, NONE, NONE, NONE);
+	long n = __syscall(SYS_read, fd, (long)buf, 16, NONE, NONE, NONE);
 
 	/* We leak fd here since OS will handle the cleanup */
-
 	if (n <= 0)
 		return -1;
+
+	*len = n;
 
 	buf[n] = '\0';
 
@@ -58,19 +59,19 @@ static int read_sysfs_freq(const char *path)
 
 /* Write one int to sysfs */
 __attribute__((always_inline))
-static long write_sysfs_freq(const char *path, int val)
+static long write_sysfs_freq(const char *path, int val, int *len)
 {
-	char buf[9];
+	char *buf = toolkit_malloc(*len);
 
-	dumb_itoa((unsigned long)val, 7, buf);
-	buf[7] = '\n';
+	dumb_itoa((unsigned long)val, *len - 1, buf);
+	buf[*len] = '\n';
 
 	long fd = __syscall(SYS_openat, AT_FDCWD, (long)path, O_WRONLY, NONE, NONE, NONE);
 	if (fd < 0)
 		return -1;
 
 	/* We leak fd here since OS will handle the cleanup */
-	return __syscall(SYS_write, fd, (long)buf, 8, NONE, NONE, NONE);
+	return __syscall(SYS_write, fd, (long)buf, *len - 1, NONE, NONE, NONE);
 }
 
 #if defined(__aarch64__)
@@ -240,25 +241,39 @@ static int bench_main(char **argv)
 	 */
 	dumb_itoa(pinned_cpu_core, 1, freq_path + 27);
 
-	int orig_max_freq = 0;
+	int max_freq = 0;
+	int max_freq_len = 0;
+	int min_freq = 0;
+	int min_freq_len = 0;
+
 	bool freq_pinned = false;
 
-	if (is_root) {
-		int min_freq = read_sysfs_freq(freq_path);
+	if (!is_root)
+		goto no_freq_pin;
+	
+	min_freq = read_sysfs_freq(freq_path, &min_freq_len);
+	if (!min_freq)
+		goto no_freq_pin;
 
-		/* Flip min to max freq by modifying the string index */
-		freq_path[46] = 'a';
-		freq_path[47] = 'x';
+	/* Flip min to max freq by modifying the string index */
+	freq_path[46] = 'a';
+	freq_path[47] = 'x';
 
-		orig_max_freq = read_sysfs_freq(freq_path);
+	max_freq = read_sysfs_freq(freq_path, &max_freq_len);
+	if (!max_freq)
+		goto no_freq_pin;
 
-		/* Now we're at scaling_max_freq. Write the min_freq to it */
-		if (min_freq > 0 && orig_max_freq > 0)
-			freq_pinned = (write_sysfs_freq(freq_path, min_freq) == 8);
-	} else {
-		print_err(no_freq_pin_template, sizeof(no_freq_pin_template) - 1);
-	}
+	/* Now we're at scaling_max_freq. Write the min_freq to it */
+	freq_pinned = (write_sysfs_freq(freq_path, min_freq, &min_freq_len) == min_freq_len - 1);
+	if (!freq_pinned)
+		goto no_freq_pin;
+	
+	goto has_freq_pin;
 
+no_freq_pin:	
+	print_out(no_freq_pin_template, sizeof(no_freq_pin_template) - 1);
+
+has_freq_pin:
 	struct stat st;
 
 	struct new_utsname uname;
@@ -343,7 +358,7 @@ start_loop:
 
 	/* Restore original max freq if we pinned it */
 	if (freq_pinned)
-		write_sysfs_freq(freq_path, orig_max_freq);
+		write_sysfs_freq(freq_path, max_freq, &max_freq_len);
 
 	return 0;
 }
