@@ -168,12 +168,9 @@ static int bench_main(char **argv)
 	bool is_root = !!!__syscall(SYS_getuid, NONE, NONE, NONE, NONE, NONE, NONE);
 
 	int pinned_cpu_core;
-	if (argv[2]) {
-		// temp for now only accept one digit
-		if (argv[2][1])
-			argv[2][1] = '\0'; // cut it!
-		pinned_cpu_core = dumb_atoi(argv[2]);
-	} else 
+	if (argv[2])
+		pinned_cpu_core = dumb_atoi(argv[2]); // lets just accept anything user says
+	else 
 		pinned_cpu_core = get_highest_cpu_core();
 
 	affine_to_cpu(pinned_cpu_core);
