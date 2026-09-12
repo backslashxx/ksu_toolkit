@@ -22,7 +22,7 @@ jobs:
 
           cd src
           clang --version 2>&1
-          clang -Oz -std=c2x -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wno-int-conversion -Wl,--entry=__start -fsanitize=address -fsanitize=undefined main.c -o toolkit
+          clang -Oz -std=gnu2x -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wno-int-conversion -Wl,--entry=__start -fsanitize=address -fsanitize=undefined main.c -o toolkit
           
           ./toolkit || true
 
@@ -42,7 +42,7 @@ jobs:
           
           rm toolkit
           gcc --version 2>&1
-          gcc -std=c2x -Wl,--gc-sections,-z,norelro -fno-unwind-tables -Wl,--entry=__start -fno-strict-aliasing -fmerge-all-constants -Wno-unknown-attributes main.c -Wno-attributes -Wno-int-conversion -o toolkit 2>&1
+          gcc -std=gnu2x -Wl,--gc-sections,-z,norelro -fno-unwind-tables -Wl,--entry=__start -fno-strict-aliasing -fmerge-all-constants -Wno-unknown-attributes main.c -Wno-attributes -Wno-int-conversion -o toolkit 2>&1
           
           ./toolkit || true
 
@@ -64,7 +64,7 @@ jobs:
           rm toolkit
           zig cc --version 2>&1
           zig version 2>&1
-          zig cc -target x86_64-linux -s -Oz -Wno-int-conversion -std=c23 -static -Wl,--gc-sections,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants -Wno-unknown-attributes main.c -o toolkit 2>&1
+          zig cc -target x86_64-linux -s -Oz -Wno-int-conversion -std=gnu2y -static -Wl,--gc-sections,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants -Wno-unknown-attributes main.c -o toolkit 2>&1
           
           ./toolkit || true
 

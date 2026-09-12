@@ -3,7 +3,7 @@
 #define N_ITERATIONS 500000
 #define N_ITERATIONS_DIGITS 6
 
-const char extra_lines[] = 
+constexpr char extra_lines[] = 
 	"[!] tests:\n"
 	"[1] NULL\n"
 	"[2] /dev/null\n"
@@ -11,10 +11,10 @@ const char extra_lines[] =
 	"[4] *unaligned*\n"
 	"[*] Lower is better, * = untracked\n";
 
-const char *devnull = "/dev/null";
+constexpr char devnull[] = "/dev/null";
+constexpr char run_template[] = "[+] kernel: ";
+constexpr char iter_template[] = "[+] iterations: ";
 
-const char run_template[] = "[+] kernel: ";
-const char iter_template[] = "[+] iterations: ";
 char cpu_core_template[] = " | core: ??\n";
 char newline[] = "\n";
 char result_template[] = "(0000000 ns avg)\n";
@@ -237,7 +237,7 @@ static int bench_main(char **argv)
 		unaligned
 	};
 
-	const int num_tests = sizeof(tests) / sizeof(tests[0]);
+	constexpr int num_tests = countof(tests);
 
 	int j;
 

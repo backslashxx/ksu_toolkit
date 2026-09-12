@@ -1,8 +1,8 @@
 char uptime_text[] = "uptime: ??????????\n";
 char text_v2[] = "sym: ? uid: ?????? time: ??????????\n";
 
-const char ok[] = { 'o', 'k', '\n'};
-const char usage[] =
+constexpr char ok[] = { 'o', 'k', '\n'};
+constexpr char usage[] =
 	"Usage:\n"
 	"./toolkit\n"
 	"   --bench <? cpu>\n"

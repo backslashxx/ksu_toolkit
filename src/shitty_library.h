@@ -31,13 +31,13 @@ static unsigned long strlen(const char *str)
 	return s - str;
 }
 
-/*
- *	dumb_atoi, string to int
+/**
+ * dumb_atoi, string to int
  *
- *	converts a string to int
- *	assumes numeric char
+ * converts a string to int
+ * assumes numeric char
  *
- *	caller is responsible for sanity
+ * caller is responsible for sanity
  *
  */
 __attribute__((noinline))
@@ -61,15 +61,15 @@ start:
 	return res;
 }
 
-/*
- *	dumb_itoa, long to string
+/**
+ * dumb_itoa, long to string
  *	
- *	converts an int to string with expected len
+ * converts an int to string with expected len
  *	
- *	caller is reposnible for sanity!
- *	no bounds check, no nothing, do not pass len = 0
+ * caller is reposnible for sanity!
+ * no bounds check, no nothing, do not pass len = 0
  *	
- *	example:
+ * example:
  *	long_to_str(10123, 5, buf); // where buf is char buf[5]; atleast
  */
 __attribute__((noinline))
@@ -87,10 +87,10 @@ start:
 	return;
 }
 
-/*
- *	toolkit_malloc
- *	brk() / sbrk() based memory alloc
- *	params same as malloc duh
+/**
+ * toolkit_malloc
+ * brk() / sbrk() based memory alloc
+ * params same as malloc duh
  *
  */
 __attribute__((always_inline))
@@ -108,9 +108,9 @@ static void *toolkit_malloc(unsigned long size)
 	return (void *)current_brk;
 }
 
-/*
- *	print_out, print_err
- *	like fprintf, format your shit yourself though
+/**
+ * print_out, print_err
+ * like fprintf, format your shit yourself though
  *
  */
 __attribute__((noinline))
@@ -125,3 +125,63 @@ static void print_err(const char *buf, unsigned long len)
 	__syscall(SYS_write, 2, (long)buf, len, NONE, NONE, NONE);
 }
 
+#ifndef __has_builtin
+#define __has_builtin(x) (0)
+#endif
+
+#ifndef __has_feature
+#define __has_feature(x) (0)
+#endif
+
+#ifndef __has_c_attribute
+#define __has_c_attribute(x) (0)
+#endif
+
+#ifndef __has_include
+#define __has_include(x) (0)
+#endif
+
+#ifndef __has_extension
+#define __has_extension(x) (0)
+#endif
+
+#ifndef __has_attribute
+#define __has_attribute(x) (0)
+#endif
+
+#if (defined(__clang__) && defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L) || \
+	(!defined(__clang__) && (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202000L))
+#define COMPILER_HAS_C23
+#endif
+
+/**
+ * partially emulate-able C23 features, should be fine on GNU11 compilers
+ *
+ * Limitations:
+ *	- do NOT use nullptr_t on _Generic overloading, it will fuck up on C11
+ *	- do NOT use constexpr as array size on C11, it will likely become a VLA
+ */
+#ifndef COMPILER_HAS_C23
+#define nullptr ((void *)0)
+typedef typeof(nullptr) nullptr_t;
+#define constexpr const
+#define auto __auto_type
+#define alignas _Alignas
+#define alignof _Alignof
+// note: requires clang
+// #define typeof_unqual(a) typeof(0, (a))
+#endif // COMPILER_HAS_C23
+
+// NOTE: clang < 19 has issues on constexpr even with -std=gnu23
+#if defined(COMPILER_HAS_C23) && defined(__clang__) && (__clang_major__ < 19)
+#define constexpr const
+#endif
+
+/**
+ * C2y's countof
+ */
+#if __has_feature(c_countof) || __has_extension(c_countof)
+#define countof(a) _Countof(a)
+#else
+#define countof(a) (sizeof(a) / sizeof(a[0]))
+#endif
