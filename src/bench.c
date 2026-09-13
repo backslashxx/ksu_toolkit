@@ -122,10 +122,10 @@ static void run_bench(long sc, long a1, long a2, long a3, long a4, long a5, long
 	__sync_synchronize();
 	t0 = time_now_ns();
 
-	// duh
-	#pragma nounroll
-	for (i = 0; i < N_ITERATIONS; i++)
+	for (i = 0; i < N_ITERATIONS; i++) {
+		asm volatile("" : : : "memory");
 		__syscall(sc, a1, a2, a3, a4, a5, a6);
+	}
 
 	t1 = time_now_ns();
 	__sync_synchronize();
@@ -243,9 +243,10 @@ static int bench_main(char **argv)
 
 	// warm-up
 	volatile unsigned long dummy __attribute__((uninitialized));
-	#pragma nounroll
-	for (j = 0; j < 50000; j++)
+	for (j = 0; j < 50000; j++) {
+		asm volatile("" : : : "memory");
 		dummy = dummy + j;
+	}
 	
 	j = 0;	
 
