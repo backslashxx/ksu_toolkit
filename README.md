@@ -3,9 +3,9 @@
 - for testing and debugging purposes.
 
 Requires:
-- [kernel: supercalls/debug: expose ksu_set_manager_appid to sys_reboot](https://github.com/tiann/KernelSU/commit/b181c297)
-- [kernel: supercalls: allow userspace to pull list entries](https://github.com/tiann/KernelSU/commit/fa12615e)
-- [kernel: sulog: basic ringbuffer, timestamped su log](https://github.com/tiann/KernelSU/commit/18381f63)
-- [kernel: supercalls: expose ksuver override](https://github.com/tiann/KernelSU/commit/f6e7faa4)
-- [kernel: expose spoof uname function to userspace](https://github.com/tiann/KernelSU/commit/fbde6fb8)
-- [kernel: supercalls: expose ksuflags override](https://github.com/tiann/KernelSU/commit/4286b26a)
+- [toolkit.h](https://github.com/backslashxx/KernelSU/blob/master/kernel/downstream/toolkit.h)
+- [kernel: supercall: wire up toolkit](https://github.com/tiann/KernelSU/commit/c077074)
+- [kernel: supercall: allow userspace to pull list entries](https://github.com/tiann/KernelSU/commit/1e7adfe)
+- [tiny_sulog.h](https://github.com/backslashxx/KernelSU/blob/master/kernel/downstream/tiny_sulog.h)
+- [kernel: wire-up tiny_sulog: basic ringbuffer, timestamped su log](https://github.com/tiann/KernelSU/commit/03d5574)
+
