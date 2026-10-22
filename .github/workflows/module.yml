@@ -22,20 +22,14 @@ jobs:
         with:
           version: master
 
-      - name: grab sstrip from ELFkickers
-        run: |
-          curl -L https://www.muppetlabs.com/~breadbox/pub/software/ELFkickers-3.2.tar.gz -o sstrip.tar.gz
-          tar xf sstrip.tar.gz
-          make -C ELFkickers-3.2 sstrip
-          cp ELFkickers-3.2/sstrip/sstrip .
+      - name: Install sstrip
+        run: sudo apt install -y elfkickers
 
       - name: compile via zigcc
         run: |
           echo "aarch64"
           pwd
           mkdir bin
-
-          chmod +x sstrip
 
           cd src
           
@@ -46,8 +40,8 @@ jobs:
 
           wc -c toolkit-*
           
-          ../sstrip -z toolkit-arm64
-          ../sstrip -z toolkit-arm
+          sstrip -z toolkit-arm64
+          sstrip -z toolkit-arm
 
           wc -c toolkit-*
           file toolkit-*
