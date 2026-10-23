@@ -1,5 +1,5 @@
 import { exec, spawn, toast } from 'kernelsu-alt';
-import { isDev } from './utils.js';
+import { isDev, escapeHtml } from './utils.js';
 import '@material/web/button/filled-button.js';
 import '@material/web/button/outlined-button.js';
 import '@material/web/chips/chip-set.js';
@@ -48,7 +48,7 @@ function appendManagerList() {
                 <img class="app-icon" src="ksu://icon/${item.packageName}" />
                 <div class="app-info">
                     <span class="app-label">
-                        ${item.appLabel}
+                        ${escapeHtml(item.appLabel)}
                         <div class="app-uid">${item.uid}</div>
                     </span>
                     <span class="package-name">${item.packageName} (${item.versionCode})</span>
@@ -385,7 +385,7 @@ export function appendSuLogList(newList, currentDate) {
         listItem.innerHTML = `
             <div class="sulog-uid">
                 <div>${item.uid}</div>
-                ${app ? `<div class="package-name">${app.appLabel} (${app.packageName})</div>`: '' }
+                ${app ? `<div class="package-name">${escapeHtml(app.appLabel)} (${app.packageName})</div>`: '' }
             </div>
             <div class="sulog-trailing">
                 ${sulogModule.upTime === 0 ? '' : `<div class="timestamp">${formattedTime}</div>`}
