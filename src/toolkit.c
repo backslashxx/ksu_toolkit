@@ -94,26 +94,10 @@ static int toolkit_main(int argc, char **argv, char **envp)
 	if (!memcmp(&argv1[2], "fkuname", sizeof("fkuname")) && argv2 && argv[3] && !argv[4])
 		goto toolkit_fakeuname;
 
-	if (!memcmp(&argv1[2], "getprio", sizeof("getprio")) && !!argv2 && !argv[3])
-		goto toolkit_getprio;
-
 	goto show_usage;
 
 run_benchmark:
 	return bench_main(argv);
-
-#define GETPRIO_FILTER		10014	// getpriority filter
-toolkit_getprio:
-	int gp_uid = dumb_atoi(argv2);
-
-	ksu_sys_reboot(GETPRIO_FILTER, gp_uid, (long)sp);
-
-	if (*(uintptr_t *)sp != (uintptr_t)sp )
-		goto fail;
-
-	print_out(ok, sizeof(ok));
-	return 0;
-
 
 toolkit_setuid:
 	unsigned int setuid_cmd = dumb_atoi(argv2) % 100000;
